@@ -45,12 +45,15 @@ module Chron
     include("DistMetropolis.jl")
     # Functions for stratigraphic modelling
     include("StratMetropolis.jl")
+    #Functions for subsidence modeling
+    include("SubsidenceStratMetropolis.jl")
 
     using Plots; gr();
     include("Fitplot.jl")
 
     # Structs
-    export ChronAgeData, HiatusData, StratAgeModelConfiguration, StratAgeModel
+    export ChronAgeData, HiatusData, StratAgeModelConfiguration, StratAgeModel, 
+        StratData, ThermalSubsidenceParameters, SubsidenceStratAgeModel
 
     # High-level functions
     export  StratMetropolis, StratMetropolisDist, StratMetropolis14C,
@@ -58,7 +61,8 @@ module Chron
         metropolis_minmax!, metropolis_minmax,
         bilinear_exponential, bilinear_exponential_ll,
         plot_rankorder_errorbar, plot_rankorder_errorbar!,
-        screen_outliers, BootstrapCrystDistributionKDE
+        screen_outliers, BootstrapCrystDistributionKDE, 
+        DecompactBackstrip, SubsidenceStratMetropolis
 
 
     # Distributions
