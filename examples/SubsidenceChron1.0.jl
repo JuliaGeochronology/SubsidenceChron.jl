@@ -2,23 +2,8 @@
 
 ## --- Load required pacages, install Chron if required
 
-    try
-        using Chron
-    catch
-        using Pkg
-        Pkg.add(PackageSpec(url="https://github.com/brenhinkeller/Chron.jl"))
-        using Chron
-    end
-
-    #import Pkg;
-    #Pkg.add(["StatGeochem","Distributions","Plots","StatsBase","ProgressMeter","LsqFit","KernelDensity","Interpolations","SpecialFunctions"])
+    using SubsidenceChron
     using StatGeochem, Distributions, Plots, Statistics, StatsBase, SpecialFunctions
-    #using StatsBase: fit, Histogram, percentile
-    #using ProgressMeter: @showprogress, Progress, update!
-    #using LsqFit: curve_fit
-    #using KernelDensity: kde
-    #using Interpolations 
-    using Plots; gr();
 
 ## --- Define properties of the stratigraphy
 
@@ -27,8 +12,8 @@
     nLayers = length(data_csv["Thickness"])
 
     strat = NewStratData(nLayers)
-    strat.Lithology          = data_csv["Lithology"] 
-    strat.Thickness         .= data_csv["Thickness"] 
+    strat.Lithology          = data_csv["Lithology"]
+    strat.Thickness         .= data_csv["Thickness"]
 
     nsims = 1000
     res = 0.02
@@ -87,8 +72,8 @@
     T0_sigma = 50
 
     therm = NewThermalSubsidenceParameters()
-    therm.Param = [Beta, T0] 
-    therm.Sigma = [Beta_sigma, T0_sigma] 
+    therm.Param = [Beta, T0]
+    therm.Sigma = [Beta_sigma, T0_sigma]
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 ## --- Run stratigraphic model
@@ -126,7 +111,7 @@
             end
         end
         beta_t0dist_95CI = beta_t0dist_filter[:,1:(idx-1)]
-        
+
         beta_t0_sample_size = div((idx-1),30)
         Sₜ_sample_size = 30
         beta_t0_sampled = Array{Float64,2}(undef, 2, beta_t0_sample_size)
@@ -137,7 +122,7 @@
         pgrs = Progress(beta_t0_sample_size, desc="Progress...")
         pgrs_interval = ceil(Int,sqrt(beta_t0_sample_size))
         for i = 1:beta_t0_sample_size
-            beta_t0_sampled[:,i] = beta_t0dist_95CI[:,(rand(1:(idx-1)))] 
+            beta_t0_sampled[:,i] = beta_t0dist_95CI[:,(rand(1:(idx-1)))]
             print(beta_t0_sampled[:,i])
             for j = 1:length(target_index)
                 k = 1
@@ -223,10 +208,10 @@
         Sμ_ideal = (E₀*1.4/pi)*sin(pi/1.4).*(1 .-exp.(-(400 .-subsmdl.Age)./50))
         plot!(testplot4, subsmdl.Age, Sμ_ideal, linecolor=:red, label="actual TS curve")
         savefig(testplot4, "SubsidenceCurveComparison_test6_1_0721.pdf")
-    
+
         #Test Plot 5 (to see how the predicted ages for horizons-of-interest match the true values)
         testplot5 = histogram(predicted_ages[1,:], label = "predicted age for horizon 1", color ="blue", alpha = 0.5, legend=:topleft)
-        vline!([282.60], label = "actual age for horizon 1", linecolor = "black", linewidth = 2) 
+        vline!([282.60], label = "actual age for horizon 1", linecolor = "black", linewidth = 2)
         vline!([nanmedian(predicted_ages,dims=2)[1]], label = "posterior median", linecolor = "blue", linewidth = 2)
         savefig(testplot5,"PredictedAge_h1_test6-1_0724.pdf")
 
@@ -245,10 +230,10 @@
 
     scatter!(age_depth_curve, target_ages, target_heights_m, xerr = target_age_errors, yerr = target_height_errors_m, label = "correlated ages")
     scatter!(thermal_subs_curve, target_ages, target_subs_heights, xerr = target_age_errors, yerr = target_subs_height_errors, label = "correlated ages")
-    
+
     figpath = "C:/Users/zhtia/Documents/GitHub/Chron.jl/trials/"
     savefig(age_depth_curve, figpath*"Age_depth_curve_entire_section.png")
-    savefig(thermal_subs_curve, figpath*"Thermal_subs_curve_entire_section.png")    
+    savefig(thermal_subs_curve, figpath*"Thermal_subs_curve_entire_section.png")
 =#
 
     ## --- Option 2: Stratigraphic MCMC model including a hiatus with unknown duration
@@ -303,7 +288,7 @@
     curve_ages = similar(Sμ)
     curve_ages = τ.*log.(1 .-((Sμ.*pi)./(E₀*beta*sin(pi/beta)))).+t0
     model_strat_heights_m = copy(-model_strat_heights[2:end]).*1000
-        
+
     hiatus_thermal_subs_curve = plot(curve_ages, -Sμ, linecolor =:blue, xflip = true, label = "beta and t0", xlabel="Age (Ma) calculated based on beta and t0 from MCMC", ylabel="Thermal subsidence (m)")
     curve_1_ages = τ.*log.(1 .-((Sμ.*pi)./(E₀*beta_025CI*sin(pi/beta_025CI)))).+t0_025CI
     curve_2_ages = τ.*log.(1 .-((Sμ.*pi)./(E₀*beta_025CI*sin(pi/beta_025CI)))).+t0_975CI
