@@ -1,9 +1,10 @@
-name = "Chron"
-uuid = "68885b1f-77b5-52a7-b2e7-6a8014c56b98"
-authors = ["C. Brenhin Keller <cbkeller@dartmouth.edu>"]
-version = "0.3.5"
+name = "SubsidenceChron"
+uuid = "f7321fe0-76de-4184-b262-f3439fe138fd"
+authors = ["Tianran Zhang", "C. Brenhin Keller"]
+version = "0.1.0"
 
 [deps]
+Chron = "68885b1f-77b5-52a7-b2e7-6a8014c56b98"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 GR = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
@@ -23,6 +24,7 @@ StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
+Chron = "0.4.3"
 Distributions = "0.15 - 0.25"
 GR = "0.28 - 0.63, 0.64, 0.66, 0.67"
 KernelDensity = "0.4 - 0.6"
