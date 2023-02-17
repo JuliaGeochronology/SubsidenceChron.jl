@@ -1,4 +1,4 @@
-using Chron
+using SubsidenceChron
 using Test, Statistics, StatsBase
 
 @testset "Utilities" begin include("testUtilities.jl") end
