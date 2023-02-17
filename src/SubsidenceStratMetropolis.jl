@@ -1,24 +1,24 @@
 ## --- Stratigraphic MCMC model without hiatus # # # # # # # # # # # # # # # # #
 
 
-# Part 1: Decompaction and Backstripping 
+# Part 1: Decompaction and Backstripping
+
+# Define the decompaction function
+function decompact!(yₚ, y, ϕ₀, c, n, m; niterations = 10)
+    # y[n+1] = y₂ = present-day depth for base of layer n
+    # y[n] = y₁ = present-day depth for top of layer n
+    δy = y[n+1] - y[n]
+    # yₚ[n-m+2] = y₂' = depth for base of layer n during decompaction (at t=tₘ)
+    # yₚ[n-m+1] = y₁' = depth for top of layer n during decompaction (at t=tₘ)
+    yₚ[n-m+2] = yₚ[n-m+1] + δy
+    # In this for loop, the initial approximatation for the thickness of a given layer is the present-day thickness of that layer (calculated above)
+    # The true thickness is then reached by running the decompaction equation multiple times (niterations)
+    @inbounds for idx=1:niterations
+        yₚ[n-m+2] = yₚ[n-m+1] + δy + ϕ₀/c * ((exp(-c*yₚ[n-m+1]) - exp(-c*yₚ[n-m+2])) - (exp(-c*y[n]) - exp(-c*y[n+1])))
+    end
+end
 
 function DecompactBackstrip(strat::StratData, nsims, res)
-
-    # Define the decompaction function
-    function decompact!(yₚ, y, ϕ₀, c, n, m; niterations = 10)
-        # y[n+1] = y₂ = present-day depth for base of layer n 
-        # y[n] = y₁ = present-day depth for top of layer n
-        δy = y[n+1] - y[n]
-        # yₚ[n-m+2] = y₂' = depth for base of layer n during decompaction (at t=tₘ)
-        # yₚ[n-m+1] = y₁' = depth for top of layer n during decompaction (at t=tₘ)
-        yₚ[n-m+2] = yₚ[n-m+1] + δy 
-        # In this for loop, the initial approximatation for the thickness of a given layer is the present-day thickness of that layer (calculated above)
-        # The true thickness is then reached by running the decompaction equation multiple times (niterations)
-        @inbounds for idx=1:niterations
-        yₚ[n-m+2] = yₚ[n-m+1] + δy + ϕ₀/c * ((exp(-c*yₚ[n-m+1]) - exp(-c*yₚ[n-m+2])) - (exp(-c*y[n]) - exp(-c*y[n+1])))
-        end
-    end
 
     # Import data from csv and assign parameters for each lithology
         lithology_inputs = strat.Lithology
@@ -74,7 +74,7 @@ function DecompactBackstrip(strat::StratData, nsims, res)
         # Define parameters for decompaction (number of simulations; water and mantle densities)
         ρw = 1000
         ρm = 3330
-           
+
         # Allocate depth matricies (rows are strat horizons, columns are timesteps)
         # decompacted depth
         Y = fill(1E-18, (model_nlayer+1, model_nlayer+1))
@@ -85,8 +85,8 @@ function DecompactBackstrip(strat::StratData, nsims, res)
         c_highres = Array{Float64,1}(undef, model_nlayer)
         ϕ₀_highres = Array{Float64,1}(undef, model_nlayer)
         ρg_highres = Array{Float64,1}(undef, model_nlayer)
-        
-        #Allocate porosity, density and tectonic subsidence matricies   
+
+        #Allocate porosity, density and tectonic subsidence matricies
         # porosity of a strat unit at any depth
         ϕ_avg = fill(1E-18, (model_nlayer, model_nlayer+1))
         # bulk density of a single layer
@@ -97,19 +97,19 @@ function DecompactBackstrip(strat::StratData, nsims, res)
         ρ_bulk_column = Array{Float64,1}(undef, model_nlayer+1)
         # tectonic subsidence # this is the only one that will need to propagate outside of the loop
         Sₜ_km = Array{Float64,2}(undef, model_nlayer+1, nsims)
-        
+
         paleo_wd_dist = Array{Float64,1}(undef, nsims)
-    
+
     # MC for decompaction and backstripping
         print("Decompaction and Backstripping: ", nsims, " steps\n")
         pgrs = Progress(nsims, desc="Decompaction and Backstripping...")
-        pgrs_interval = ceil(Int,10)    
+        pgrs_interval = ceil(Int,10)
         for sim = 1:nsims
             # randomly select c and ϕ₀ vectors (for the whole column) from the distributions
             c = rand.(c_dist)
             ϕ₀ = rand.(ϕ₀_dist)
 
-            for i = 1:nlayer_input
+            @inbounds for i = 1:nlayer_input
                 for j = 1:model_nlayer
                     if model_strat_heights[j+1]>height_inputs[i]
                         c_highres[j]=c[i]
@@ -164,25 +164,25 @@ function DecompactBackstrip(strat::StratData, nsims, res)
             #Y_corr[end] = 0-paleo_sl_highres[end]*(ρw/(ρm-ρw))+paleo_wd_highres[end]-paleo_sl_highres[end]
             #Sₜ_km[end,:] .= copy(Y_corr[end])*(ρm/(ρm-ρw))
             #Y_max[sim, :] = maximum(Y_corr, dims = 1)
-            
+
             # Remove the effect of sediment load - same indexing logic as the decompaction loop
             # i = time steps (columns) = 1:layer_count b/c need to calculate these parameters for the present day column/layers
             # j = layer number = i:layer_count b/c the ith column begins with y₁' of layer i
-            for i = 1:model_nlayer+1
+            @inbounds for i = 1:model_nlayer+1
                 for j = i:model_nlayer
                     ϕ_avg[j-i+1,i] = (ϕ₀_highres[j]/c_highres[j])*(exp(-c_highres[j]*Y[j-i+1,i])-exp(-c_highres[j]*Y[j-i+2,i]))/(Y[j-i+2,i]-Y[j-i+1,i])
                     ρ_bulk[j-i+1,i] = ρw*ϕ_avg[j-i+1,i]+(1-ϕ_avg[j-i+1,i])*ρg_highres[j]
                     m_bulk[j-i+1,i] = (Y[j-i+2,i]-Y[j-i+1,i])*ρ_bulk[j-i+1,i]
                 end
             end
-            
+
             m_bulk[:,end] .= 0
-            for i = 1:model_nlayer+1        
+            for i = 1:model_nlayer+1
                 # maximum(Y_corr[:,i]) = total depth of column at time step i
                 ρ_bulk_column[i] = sum(m_bulk[:,i])/maximum(Y[:,i])
                 #Y_corr[:,i] = copy(Y[:,i]).-paleo_sl_highres[i]*(ρw/(ρm-ρw)).+paleo_wd_highres[i].-paleo_sl_highres[i]
                 #Sₜ_km[i,sim] = copy(Y_corr[model_nlayer+2-i,i])*((ρm-ρ_bulk_column[i])/(ρm-ρw))
-                Sₜ_km[i,sim] = copy(Y[model_nlayer+2-i,i])*((ρm-ρ_bulk_column[i])/(ρm-ρw)).+paleo_wd_highres[i]       
+                Sₜ_km[i,sim] = copy(Y[model_nlayer+2-i,i])*((ρm-ρ_bulk_column[i])/(ρm-ρw)).+paleo_wd_highres[i]
             end
 
             mod(sim,pgrs_interval)==0 && update!(pgrs, sim)
@@ -197,6 +197,17 @@ function DecompactBackstrip(strat::StratData, nsims, res)
     return Sₜ, Sμ, Sσ, model_strat_heights, paleo_wd_dist
 end
 
+## --- Part 2: Age-depth modelling
+
+# Define the function that calculates the ll of the thermal subsidence fit
+function subsidence_ll(E₀, τ, model_St, model_St_sigma, model_t, beta_t0)
+    # Calculate subsidence_model_heights given this unique smooth thermal subsidence model at each age in model_t
+    subsidence_model_heights = (E₀*beta_t0[1]/pi)*sin(pi/beta_t0[1]).*(1 .-exp.(-(beta_t0[2] .-model_t)./τ))
+    #-τ*log(1 .-((model_St*pi)/(E₀*beta_t0[1]*sin(pi/beta_t0[1])))) .+beta_t0[2]
+    # Turn that into a log likelihood using some age uncertainty of the curve
+    log_likelihood = normpdf_ll(model_St, model_St_sigma, subsidence_model_heights)
+    return log_likelihood
+end
 
 # Part 2a: Modified StratMetropolis for extensional basins - without hiatus
 
@@ -213,23 +224,13 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         T_mantle = 1333
         τ = 50 #Myr
         E₀ = (4*y_litho*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water))
-    
-    # Define the function that calculates the ll of the thermal subsidence fit
-    function subsidence_ll(model_St, model_St_sigma, model_t, beta_t0)
-        # Calculate subsidence_model_heights given this unique smooth thermal subsidence model at each age in model_t
-        subsidence_model_heights = (E₀*beta_t0[1]/pi)*sin(pi/beta_t0[1]).*(1 .-exp.(-(beta_t0[2] .-model_t)./τ))
-        #-τ*log(1 .-((model_St*pi)/(E₀*beta_t0[1]*sin(pi/beta_t0[1])))) .+beta_t0[2]
-        # Turn that into a log likelihood using some age uncertainty of the curve
-        log_likelihood = normpdf_ll(model_St, model_St_sigma, subsidence_model_heights)
-        return log_likelihood
-    end
 
     # Stratigraphic age constraints
         Age = copy(smpl.Age)::Array{Float64,1}
         Age_sigma = copy(smpl.Age_sigma)::Array{Float64,1}
         Height = copy(smpl.Height)::Array{Float64,1}
         Height_sigma = smpl.Height_sigma::Array{Float64,1} .+ 1E-9 # Avoid divide-by-zero issues
-        Age_Sidedness = copy(smpl.Age_Sidedness)::Array{Float64,1} # Bottom is a maximum age and top is a minimum age  
+        Age_Sidedness = copy(smpl.Age_Sidedness)::Array{Float64,1} # Bottom is a maximum age and top is a minimum age
         (bottom, top) = extrema(Height)
         (youngest, oldest) = extrema(Age)
         dt_dH = (oldest-youngest)/(top-bottom)
@@ -242,7 +243,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         nsteps = config.nsteps
         burnin = config.burnin
         sieve = config.sieve
-        
+
         if bounding>0
             # If bounding is requested, add extrapolated top and bottom bounds to avoid
             # issues with the stratigraphic markov chain wandering off to +/- infinity
@@ -254,7 +255,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             Age_Sidedness = [-1.0; Age_Sidedness; 1.0;] # Bottom is a maximum age and top is a minimum age
             model_heights = (bottom-offset):resolution:(top+offset)
         end
-        
+
         if any(i -> i == -2138, Height) == true #Will replace this 2138 with a more generic function to identify whether we have a age constraint at the base of section
             active_height_t = (model_heights .> bottom) .& (model_heights .<= top)
         elseif any(i -> i == -2138, Height) == false
@@ -294,10 +295,10 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         ll += normpdf_ll(Height, Height_sigma, sample_height)
 
     # STEP 2: calculate log likelihood of the subsidence model parameters in the initial proposal
-        # Define thermal subsidence model parameters 
+        # Define thermal subsidence model parameters
         ideal_subs_parameters = therm.Param
         ideal_subs_parameters_sigma = therm.Sigma
-                
+
         # Initial proposal for subsidence parameters - randomly pick a set of values from the distribution
         subs_parameters = [ideal_subs_parameters[1]+beta_ip, ideal_subs_parameters[2]+t0_ip]
         # Calculate log likelihood of this initial proposal for subsidence parameters
@@ -314,7 +315,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             ts_Sσ = Sσ[(model_heights_all .>= bottom) .& (model_heights_all .<= top)]
         end
 
-        ll += subsidence_ll(ts_Sμ, ts_Sσ, ts_model_ages, subs_parameters)
+        ll += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_ages, subs_parameters)
 
     # Preallocate variables for MCMC proposals
         llₚ = ll
@@ -323,7 +324,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         sample_heightₚ = copy(sample_height)
         closest_model_agesₚ = copy(closest_model_ages)
         subs_parametersₚ = copy(subs_parameters)
-        
+
     # Run burnin
         # acceptancedist = fill(false,burnin)
         lldist_burnin = Array{Float64}(undef,burnin÷1000)
@@ -352,11 +353,11 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
                         closestₚ[i] = npoints
                     end
                 end
-            else  
+            else
                 # Adjust one point at a time then resolve conflicts
                 r = randn() * aveuncert # Generate a random adjustment
                 chosen_point = ceil(Int, rand() * npoints) # Pick a point
-                model_agesₚ[chosen_point] += r  
+                model_agesₚ[chosen_point] += r
                 #Resolve conflicts
                 if r > 0 # If proposing increased age
                     @inbounds for i=1:chosen_point # younger points that are still stratigraphically below
@@ -385,10 +386,10 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ = normpdf_ll(Age, Age_sigma, closest_model_agesₚ)
             llₚ += normpdf_ll(Height, Height_sigma, sample_heightₚ)
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
-            
+
             ts_model_agesₚ = reverse(model_agesₚ[active_height_t])
-            llₚ += subsidence_ll(ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)
-            
+            llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)
+
             # Accept or reject proposal based on likelihood
             if log(rand(Float64)) < (llₚ - ll)
                 ll = llₚ
@@ -472,7 +473,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
             ts_model_agesₚ = reverse(model_agesₚ[active_height_t])
-            llₚ += subsidence_ll(ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)
+            llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)
 
             # Accept or reject proposal based on likelihood
             if log(rand(Float64)) < (llₚ - ll)
@@ -489,7 +490,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
                 agedist[:,n÷sieve] .= model_ages
                 beta_t0dist[:,n÷sieve] .= subs_parameters
                 #predicted_ages[n÷sieve] = beta_t0dist[2]+τ*log(1-(Sμ[?]*pi)/(E₀*beta_t0dist[1]*sin(pi/beta_t0dist[2])))
-            end 
+            end
 
             # Update progress meter every `pgrs_interval` steps
             mod(n,pgrs_interval)==0 && update!(pgrs, n)
@@ -538,16 +539,6 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         T_mantle = 1333
         τ = 50 #Myr
         E₀ = (4*y_litho*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water))
-    
-    # Define the function that calculates the ll of the thermal subsidence fit
-    function subsidence_ll(model_St, model_St_sigma, model_t, beta_t0)
-        # Calculate subsidence_model_heights given this unique smooth thermal subsidence model at each age in model_t
-        subsidence_model_heights = (E₀*beta_t0[1]/pi)*sin(pi/beta_t0[1]).*(1 .-exp.(-(beta_t0[2] .-model_t)./τ))
-        #-τ*log(1 .-((model_St*pi)/(E₀*beta_t0[1]*sin(pi/beta_t0[1])))) .+beta_t0[2]
-        # Turn that into a log likelihood using some age uncertainty of the curve
-        log_likelihood = normpdf_ll(model_St, model_St_sigma, subsidence_model_heights)
-        return log_likelihood
-    end
 
     # Stratigraphic age constraints
         Age = copy(smpl.Age)::Array{Float64,1}
@@ -567,7 +558,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         nsteps = config.nsteps
         burnin = config.burnin
         sieve = config.sieve
-        
+
         if bounding>0
             # If bounding is requested, add extrapolated top and bottom bounds to avoid
             # issues with the stratigraphic markov chain wandering off to +/- infinity
@@ -579,7 +570,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             Age_Sidedness = [-1.0; Age_Sidedness; 1.0;] # Bottom is a maximum age and top is a minimum age
             model_heights = (bottom-offset):resolution:(top+offset)
         end
-        
+
         active_height_t = (model_heights .>= bottom) .& (model_heights .<= top)
         npoints = length(model_heights)
 
@@ -604,10 +595,10 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         ll += normpdf_ll(Height, Height_sigma, sample_height)
 
     # STEP 2: calculate log likelihood of the subsidence model parameters in the initial proposal
-        # Define thermal subsidence model parameters 
+        # Define thermal subsidence model parameters
         ideal_subs_parameters = therm.Param
         ideal_subs_parameters_sigma = therm.Sigma
-                
+
         # Initial proposal for subsidence parameters - randomly pick a set of values from the distribution
         subs_parameters = [ideal_subs_parameters[1]+beta_ip, ideal_subs_parameters[2]+t0_ip]
         # Calculate log likelihood of this initial proposal for subsidence parameters
@@ -619,7 +610,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         model_heights_all = copy(-model_strat_heights).*1000
         ts_Sμ_hiatus = Sμ[bottom .<= model_heights_all .< hiatus_height]
         ts_Sσ_hiatus = Sσ[bottom .<= model_heights_all .< hiatus_height]
-        ll += subsidence_ll(ts_Sμ_hiatus, ts_Sσ_hiatus, ts_model_ages_hiatus, subs_parameters)
+        ll += subsidence_ll(E₀, τ, ts_Sμ_hiatus, ts_Sσ_hiatus, ts_model_ages_hiatus, subs_parameters)
 
     # Preallocate variables for MCMC proposals
         llₚ = ll
@@ -628,11 +619,11 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         sample_heightₚ = copy(sample_height)
         closest_model_agesₚ = copy(closest_model_ages)
         subs_parametersₚ = copy(subs_parameters)
-        
+
     # Run burnin
         # acceptancedist = fill(false,burnin)
         lldist_burnin = Array{Float64}(undef,burnin÷10)
-        
+
         print("Burn-in: ", burnin, " steps\n")
         pgrs = Progress(burnin, desc="Burn-in...")
         pgrs_interval = ceil(Int,sqrt(burnin))
@@ -692,8 +683,8 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
             ts_model_ages_hiatusₚ = reverse(model_agesₚ[active_height_t_hiatus])
-            llₚ += subsidence_ll(ts_Sμ_hiatus, ts_Sσ_hiatus, ts_model_ages_hiatusₚ, subs_parametersₚ)
-            
+            llₚ += subsidence_ll(E₀, τ, ts_Sμ_hiatus, ts_Sσ_hiatus, ts_model_ages_hiatusₚ, subs_parametersₚ)
+
             # Accept or reject proposal based on likelihood
             if log(rand(Float64)) < (llₚ - ll)
                 ll = llₚ
@@ -720,7 +711,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
 
     # Run the model
         h = plot(xlabel="Age", ylabel="Height", framestyle=:box)
-    
+
         pgrs = Progress(nsteps*sieve, desc="Collecting...")
         pgrs_interval = ceil(Int,sqrt(nsteps*sieve))
         for n=1:(nsteps*sieve)
@@ -777,9 +768,9 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ = normpdf_ll(Age, Age_sigma, closest_model_agesₚ)
             llₚ += normpdf_ll(Height, Height_sigma, sample_heightₚ)
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
-            
+
             ts_model_ages_hiatusₚ = reverse(model_agesₚ[active_height_t_hiatus])
-            llₚ += subsidence_ll(ts_Sμ_hiatus, ts_Sσ_hiatus, ts_model_ages_hiatusₚ, subs_parametersₚ)
+            llₚ += subsidence_ll(E₀, τ, ts_Sμ_hiatus, ts_Sσ_hiatus, ts_model_ages_hiatusₚ, subs_parametersₚ)
 
             # Accept or reject proposal based on likelihood
             if log(rand(Float64)) < (llₚ - ll)
@@ -841,9 +832,9 @@ end
 
 
 # Part 2c: Modified StratMetropolis for extensional basins - with hiata (when we know the duration of hiata relatively precisely)
-    
+
 function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConfiguration, therm::ThermalSubsidenceParameters, model_strat_heights, Sμ, Sσ, hiatus::HiatusData)
-        
+
     # Run stratigraphic MCMC model, with hiata
     print("Generating stratigraphic age-depth model...\n")
 
@@ -855,16 +846,6 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         T_mantle = 1333
         τ = 50 #Myr
         E₀ = (4*y_litho*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water))
-
-    # Define the function that calculates the ll of the thermal subsidence fit
-        function subsidence_ll(model_St, model_St_sigma, model_t, beta_t0)
-            # Calculate subsidence_model_heights given this unique smooth thermal subsidence model at each age in model_t
-            subsidence_model_heights = (E₀*beta_t0[1]/pi)*sin(pi/beta_t0[1]).*(1 .-exp.(-(beta_t0[2] .-model_t)./τ))
-            #-τ*log(1 .-((model_St*pi)/(E₀*beta_t0[1]*sin(pi/beta_t0[1])))) .+beta_t0[2]
-            # Turn that into a log likelihood using some age uncertainty of the curve
-            log_likelihood = normpdf_ll(model_St, model_St_sigma, subsidence_model_heights)
-            return log_likelihood
-        end
 
     # Stratigraphic age constraints. Type assertions for stability
         Age = copy(smpl.Age)::Array{Float64,1}
@@ -917,18 +898,18 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         end
         ll = normpdf_ll(Age, Age_sigma, closest_model_ages)
         ll += normpdf_ll(Height, Height_sigma, sample_height)
-        
+
     # STEP 2: calculate log likelihood of the subsidence model parameters in the initial proposal
         # Define thermal subsidence model parameters - read from struct
         ideal_subs_parameters = therm.Param
-        ideal_subs_parameters_sigma = therm.Sigma        
+        ideal_subs_parameters_sigma = therm.Sigma
         # Initial proposal for subsidence parameters - randomly pick a set of values from the distribution
         subs_parameters = [ideal_subs_parameters[1]+0.01, ideal_subs_parameters[2]-1]
         # Calculate log likelihood of this initial proposal
         ll += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parameters)
 
     # STEP 3: calculate log likelihood for the fit of the thermal subsidence curve in the initial proposal
-        ll += subsidence_ll(Sμ, Sσ, model_ages, subs_parameters)/(length(model_strat_heights)-1)
+        ll += subsidence_ll(E₀, τ, Sμ, Sσ, model_ages, subs_parameters)/(length(model_strat_heights)-1)
 
         # Ensure there is only one effective hiatus at most for each height node
         closest_hiatus = findclosestabove((hiatus.Height::Array{Float64,1}),model_heights)
@@ -984,12 +965,12 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
                     end
                 end
             else
-                
+
                 # Adjust one point at a time then resolve conflicts
                 r = randn() * aveuncert # Generate a random adjustment
                 chosen_point = ceil(Int, rand() * npoints) # Pick a point
                 model_agesₚ[chosen_point] += r
-                
+
                 #Resolve conflicts
                 if r > 0 # If proposing increased age
                     @inbounds for i=1:chosen_point # younger points that are still stratigraphically below
@@ -1044,9 +1025,9 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             end
             llₚ = normpdf_ll(Age, Age_sigma, closest_model_agesₚ)
             llₚ += normpdf_ll(Height, Height_sigma, sample_heightₚ)
-            llₚ += subsidence_ll(Sμ, Sσ, model_agesₚ, subs_parametersₚ)/(length(model_strat_heights)-1)
+            llₚ += subsidence_ll(E₀, τ, Sμ, Sσ, model_agesₚ, subs_parametersₚ)/(length(model_strat_heights)-1)
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
-            
+
             # Add log likelihood for hiatus duration
             @. durationₚ = min(model_agesₚ[closest_hiatus_unique - 1] - model_agesₚ[closest_hiatus_unique], Hiatus_duration)
             llₚ += normpdf_ll(Hiatus_duration, Hiatus_duration_sigma, durationₚ)
@@ -1099,12 +1080,12 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
                     end
                 end
             else
-                
+
                 # Adjust one point at a time then resolve conflicts
                 r = randn() * aveuncert # Generate a random adjustment
                 chosen_point = ceil(Int, rand() * npoints) # Pick a point
                 model_agesₚ[chosen_point] += r
-                
+
                 #Resolve conflicts
                 if r > 0 # If proposing increased age
                     @inbounds for i=1:chosen_point # younger points that are still stratigraphically below
@@ -1158,7 +1139,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             end
             llₚ = normpdf_ll(Age, Age_sigma, closest_model_agesₚ)
             llₚ += normpdf_ll(Height, Height_sigma, sample_heightₚ)
-            llₚ += subsidence_ll(Sμ, Sσ, model_agesₚ, subs_parametersₚ)/(length(model_strat_heights)-1)
+            llₚ += subsidence_ll(E₀, τ, Sμ, Sσ, model_agesₚ, subs_parametersₚ)/(length(model_strat_heights)-1)
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
             # Add log likelihood for hiatus duration
