@@ -2,7 +2,7 @@
 
 julia_version = "1.9.0-beta4"
 manifest_format = "2.0"
-project_hash = "844d310d4947952944f8f4e43359d0beb0f1c1e7"
+project_hash = "9e84c2412934f376e192037069fa352a12e13e90"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -1200,8 +1200,8 @@ uuid = "7792a7ef-975c-4747-a70f-980b88e8d1da"
 version = "0.4.7"
 
 [[deps.SubsidenceChron]]
-deps = ["Chron", "NaNStatistics", "ProgressMeter", "Reexport", "StatGeochemBase", "Test"]
-git-tree-sha1 = "c399701f10b899d83a709d39d1f063d7850f5664"
+deps = ["Chron", "Distributions", "NaNStatistics", "ProgressMeter", "Reexport", "StatGeochemBase", "Test"]
+git-tree-sha1 = "d0ed57d65ef667d60db337f01e9631c4abc6ab9d"
 repo-rev = "main"
 repo-url = "https://github.com/JuliaGeochronology/SubsidenceChron.jl"
 uuid = "f7321fe0-76de-4184-b262-f3439fe138fd"

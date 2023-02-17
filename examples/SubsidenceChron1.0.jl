@@ -3,8 +3,7 @@
 ## --- Load required pacages, install Chron if required
 
     using SubsidenceChron
-    using StatGeochem, Distributions, Plots, Statistics, StatsBase, SpecialFunctions
-
+    using StatGeochem, Distributions, Plots, Statistics, StatsBase
 
 ## --- Part 1: Define properties of the stratigraphy
 
@@ -16,7 +15,7 @@
     strat.Lithology          = data_csv["Lithology"]
     strat.Thickness         .= data_csv["Thickness"]
 
-    nsims = 5000
+    nsims = 50 #5000
     res = 0.001
 
 ## --- Run the decompaction and backstripping MC model
@@ -37,38 +36,24 @@
     =#
 
     # Plot results - tectonic subsidence in comparison with present day stratigraphic heights
-    p1 = plot(1:411, Sμ, alpha = 1, yflip = true, xflip = true, label = "Tectonic subsidence", color = "blue")
-    plot!(p1, 1:411, reverse((model_strat_heights)*1000), yflip = true, label = "Present-day thickness", color = "red")
-    plot!(p1, 1:411, Sₜ[:,2:end], alpha = 0.01, label = "", yflip = true, color = "blue", fg_color_legend=:white)
+    p1 = plot(Sμ, alpha = 1, yflip = true, xflip = true, label = "Tectonic subsidence", color = "blue")
+    plot!(p1, reverse((model_strat_heights)*1000), yflip = true, label = "Present-day thickness", color = "red")
+    plot!(p1, Sₜ[:,2:end], alpha = 0.01, label = "", yflip = true, color = "blue", fg_color_legend=:white)
     savefig(p1, "Fig7a_DecompactBackstrip_higherres.pdf")
 
-    #Test Plot 1: how the distribution of Sₜ compare with target mean value?
-    using DelimitedFiles
-    Sₜ_test = readdlm("St_test.txt", ',', Float64)*1000
-    testplot1_1 = histogram(Sₜ[1,:], label = "Distribution from MC", linecolor = "white")
-    vline!(testplot1_1, [Sₜ_test[1]], label = "Target value", linecolor = "black", linewidth = 2)
-    testplot1_2 = histogram(Sₜ[121,:], label = "Distribution from MC", linecolor = "white")
-    vline!(testplot1_2, [Sₜ_test[121]], label = "Target value", linecolor = "black", linewidth = 2)
-    testplot1_3 = histogram(Sₜ[361,:], label = "Distribution from MC", linecolor = "white")
-    vline!(testplot1_3, [Sₜ_test[361]], label = "Target value", linecolor = "black", linewidth = 2)
-    testplot1_4 = histogram(Sₜ[501,:], label = "Distribution from MC", linecolor = "white")
-    vline!(testplot1_4, [Sₜ_test[501]], label = "Target value", linecolor = "black", linewidth = 2)
-    testplot1 = plot(testplot1_1, testplot1_2, testplot1_3, testplot1_4, layout = 4, title = ["0 Ma" "80 Ma" "145 Ma" "245 Ma"], size = (1000, 1000))
-    png(testplot1, "Test1_DecompactBackstripMC")
-
-## --- PArt 2: Define properties of age constraints
+## --- Part 2: Define properties of age constraints
 
     # # # # # # # # # # # Enter age constraint (sample) information here! # # # # # # # # # # # #
     # Input the number of samples we wish to model (must match below)
-    nSamples = 4
+    nSamples = 3
     # Make an instance of a Chron Section object for nSamples
     smpl = NewChronAgeData(nSamples)
-    smpl.Name          = ("Sample 1", "Sample 2", "Sample 3", "Sample 4") # Et cetera
-    smpl.Age          .= [879.91,  791.1,    737.5,   717] # Measured ages
-    smpl.Age_sigma    .= [  0.63,   2.45,      4.8,   0.4] # Measured 1-σ uncertainties
-    smpl.Height       .= [ -2138,  -1178,     -100,     0] # Depths below surface should be negative
-    smpl.Height_sigma .= [  0.01,   0.01,     0.01,  0.01] # Usually assume little or no sample height uncertainty
-    smpl.Age_Sidedness .= [   -1,      0,        0,    +1] # Sidedness (zeros by default: geochron constraints are two-sided). Use -1 for a maximum age and +1 for a minimum age, 0 for two-sided
+    smpl.Name          = ("Sample 2", "Sample 3", "Sample 4") # Et cetera
+    smpl.Age          .= [ 791.1,    737.5,   717] # Measured ages
+    smpl.Age_sigma    .= [  2.45,      4.8,   0.4] # Measured 1-σ uncertainties
+    smpl.Height       .= [ -1178,     -100,     0] # Depths below surface should be negative
+    smpl.Height_sigma .= [  0.01,     0.01,  0.01] # Usually assume little or no sample height uncertainty
+    smpl.Age_Sidedness .= [    0,        0,    +1] # Sidedness (zeros by default: geochron constraints are two-sided). Use -1 for a maximum age and +1 for a minimum age, 0 for two-sided
     smpl.Age_Unit = "Ma" # Unit of measurement for ages
     smpl.Height_Unit = "m" # Unit of measurement for Height and Height_sigma
 
@@ -109,7 +94,7 @@
 
     ## --- Option 1: Stratigraphic MCMC model (without hiatus)
         #Run the model
-        (subsmdl, agedist, lldist, beta_t0dist, lldist_burnin) = SubsidenceStratMetropolis(smpl, config, therm, model_strat_heights, Sμ, Sσ_updated, 0.05, 10)
+        (subsmdl, agedist, lldist, beta_t0dist, lldist_burnin) = SubsidenceStratMetropolis(smpl, config, therm, model_strat_heights, Sμ, Sσ, 0.05, 10)
 
         #=
         # Experiment - another way to use the MDAs (as a criterion for filtering of t0)
