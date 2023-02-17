@@ -2,23 +2,9 @@
 
 ## --- Load required pacages, install Chron if required
 
-    try
-        using Chron
-    catch
-        using Pkg
-        Pkg.add(PackageSpec(url="https://github.com/brenhinkeller/Chron.jl"))
-        using Chron
-    end
-
-    #import Pkg;
-    #Pkg.add(["StatGeochem","Distributions","Plots","StatsBase","ProgressMeter","LsqFit","KernelDensity","Interpolations","SpecialFunctions"])
+    using SubsidenceChron
     using StatGeochem, Distributions, Plots, Statistics, StatsBase, SpecialFunctions
-    #using StatsBase: fit, Histogram, percentile
-    #using ProgressMeter: @showprogress, Progress, update!
-    #using LsqFit: curve_fit
-    #using KernelDensity: kde
-    #using Interpolations 
-    using Plots; gr();
+
 
 ## --- Part 1: Define properties of the stratigraphy
 
@@ -27,8 +13,8 @@
     nLayers = length(data_csv["Thickness"])
 
     strat = NewStratData(nLayers)
-    strat.Lithology          = data_csv["Lithology"] 
-    strat.Thickness         .= data_csv["Thickness"] 
+    strat.Lithology          = data_csv["Lithology"]
+    strat.Thickness         .= data_csv["Thickness"]
 
     nsims = 5000
     res = 0.001
@@ -102,8 +88,8 @@
     T0_sigma = 50
 
     therm = NewThermalSubsidenceParameters()
-    therm.Param = [Beta, T0] 
-    therm.Sigma = [Beta_sigma, T0_sigma] 
+    therm.Param = [Beta, T0]
+    therm.Sigma = [Beta_sigma, T0_sigma]
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 ## --- Run stratigraphic model
@@ -163,10 +149,10 @@
 
         #Plot posterior distributions
         post_beta = histogram(beta_t0dist[1,:], color="black", linecolor=nothing, alpha = 0.5, nbins=50)
-        vline!([subsmdl.Beta_Median], linecolor = "black", linestyle=:dot, linewidth = 3) 
+        vline!([subsmdl.Beta_Median], linecolor = "black", linestyle=:dot, linewidth = 3)
         savefig(post_beta, "Fig8a_Svalbard_PosteriorBeta.pdf")
         post_t0 = histogram(beta_t0dist[2,:], color="black", linecolor=nothing, alpha = 0.5, nbins=50)
-        vline!([subsmdl.T0_Median], linecolor = "black", linestyle=:dot, linewidth = 3) 
+        vline!([subsmdl.T0_Median], linecolor = "black", linestyle=:dot, linewidth = 3)
         savefig(post_t0, "Fig8b_Svalbard_PosteriorT0.pdf")
 
         #If target horizon is not in the range of the age-depth model...
@@ -186,7 +172,7 @@
             end
         end
         beta_t0dist_95CI = beta_t0dist_filter[:,1:(idx-1)]
-        
+
         beta_t0_sample_size = div((idx-1),30)
         Sₜ_sample_size = 30
         beta_t0_sampled = Array{Float64,2}(undef, 2, beta_t0_sample_size)
@@ -197,7 +183,7 @@
         pgrs = Progress(beta_t0_sample_size, desc="Progress...")
         pgrs_interval = ceil(Int,sqrt(beta_t0_sample_size))
         for i = 1:beta_t0_sample_size
-            beta_t0_sampled[:,i] = beta_t0dist_95CI[:,(rand(1:(idx-1)))] 
+            beta_t0_sampled[:,i] = beta_t0dist_95CI[:,(rand(1:(idx-1)))]
             print(beta_t0_sampled[:,i])
             for j = 1:length(target_index)
                 k = 1
@@ -215,27 +201,27 @@
         update!(pgrs, beta_t0_sample_size)
 
         predicted1 = histogram(predicted_ages[1,:], color="black", linecolor=nothing, alpha = 0.5)
-        vline!([nanmedian(predicted_ages, dims=2)[1]], linecolor = "black", linestyle=:dot, linewidth = 3) 
+        vline!([nanmedian(predicted_ages, dims=2)[1]], linecolor = "black", linestyle=:dot, linewidth = 3)
         savefig(predicted1, "Svalbard_BetaT0PredictedAge1_Case1v2.pdf")
         predicted2 = histogram(predicted_ages[2,:], color="black", linecolor=nothing, alpha = 0.5)
-        vline!([nanmedian(predicted_ages, dims=2)[2]], linecolor = "black", linestyle=:dot, linewidth = 3) 
+        vline!([nanmedian(predicted_ages, dims=2)[2]], linecolor = "black", linestyle=:dot, linewidth = 3)
         savefig(predicted2, "Svalbard_BetaT0PredictedAge2_Case1v2.pdf")
         predicted3 = histogram(predicted_ages[3,:], color="black", linecolor=nothing, alpha = 0.5)
-        vline!([nanmedian(predicted_ages, dims=2)[3]], linecolor = "black", linestyle=:dot, linewidth = 3) 
-        savefig(predicted3, "Svalbard_BetaT0PredictedAge3_Case1v2.pdf") 
+        vline!([nanmedian(predicted_ages, dims=2)[3]], linecolor = "black", linestyle=:dot, linewidth = 3)
+        savefig(predicted3, "Svalbard_BetaT0PredictedAge3_Case1v2.pdf")
         predicted4 = histogram(predicted_ages2[4,:], color="black", linecolor=nothing, alpha = 0.5)
-        vline!([nanmedian(predicted_ages2, dims=2)[4]], linecolor = "black", linestyle=:dot, linewidth = 3) 
-        savefig(predicted4, "Fig9a_Svalbard_PredictedAge4_Case2.pdf") 
+        vline!([nanmedian(predicted_ages2, dims=2)[4]], linecolor = "black", linestyle=:dot, linewidth = 3)
+        savefig(predicted4, "Fig9a_Svalbard_PredictedAge4_Case2.pdf")
         predicted5 = histogram(predicted_ages2[5,:], color="black", linecolor=nothing, alpha = 0.5)
-        vline!([nanmedian(predicted_ages2, dims=2)[5]], linecolor = "black", linestyle=:dot, linewidth = 3) 
+        vline!([nanmedian(predicted_ages2, dims=2)[5]], linecolor = "black", linestyle=:dot, linewidth = 3)
         savefig(predicted5, "Fig9a_Svalbard_PredictedAge5_Case2.pdf")
         predicted6 = histogram(predicted_ages2[6,:], color="black", linecolor=nothing, alpha = 0.5)
-        vline!([nanmedian(predicted_ages2, dims=2)[6]], linecolor = "black", linestyle=:dot, linewidth = 3) 
+        vline!([nanmedian(predicted_ages2, dims=2)[6]], linecolor = "black", linestyle=:dot, linewidth = 3)
         savefig(predicted6, "Fig9a_Svalbard_PredictedAge6_Case2.pdf")
         #predicted7 = histogram(predicted_ages[7,:], color="black", linecolor=nothing, alpha = 0.5)
-        #vline!([nanmedian(predicted_ages, dims=2)[7]], linecolor = "black", linestyle=:dot, linewidth = 3) 
-        #savefig(predicted7, "Fig9a_Svalbard_PredictedAge7_2Ages.pdf")    
-        
+        #vline!([nanmedian(predicted_ages, dims=2)[7]], linecolor = "black", linestyle=:dot, linewidth = 3)
+        #savefig(predicted7, "Fig9a_Svalbard_PredictedAge7_2Ages.pdf")
+
         #Interpolate full age distribution
         height = [0, -56, -176, -1013, -1275, -1694]
         height_test = [-1700, -1800, -1900, -2000, -2100]
@@ -249,37 +235,37 @@
         predicted_medians_test = nanmedian(interpolated_distribution_test, dims=1)
         predicted_025CI_test = nanpctile(interpolated_distribution_test, 2.5, dims=1)
         predicted_975CI_test = nanpctile(interpolated_distribution_test, 97.5, dims=1)
-        
+
         hdl_predicted1 = histogram(interpolated_distribution_test[:,1], nbins=50, label="")
-        vline!([predicted_medians_test[1]], linecolor = "black", linestyle=:dot, linewidth = 3) 
+        vline!([predicted_medians_test[1]], linecolor = "black", linestyle=:dot, linewidth = 3)
         plot!(hdl_predicted1, xlabel="Age ($(smpl.Age_Unit)) for top of section", ylabel="Likelihood (unnormalized)")
         savefig(hdl_predicted1, "InterpolatedAgeDistribution_h2_2.pdf")
         hdl_predicted2 = histogram(interpolated_distribution_test[:,2], nbins=50, label="")
-        vline!([predicted_medians_test[2]], linecolor = "black", linestyle=:dot, linewidth = 3) 
+        vline!([predicted_medians_test[2]], linecolor = "black", linestyle=:dot, linewidth = 3)
         plot!(hdl_predicted2, xlabel="Age ($(smpl.Age_Unit)) for onset of Russoya anomaly", ylabel="Likelihood (unnormalized)")
         savefig(hdl_predicted2, "InterpolatedAgeDistribution_h4_2.pdf")
         hdl_predicted3 = histogram(interpolated_distribution_test[:,3], nbins=50, label="")
-        vline!([predicted_medians_test[3]], linecolor = "black", linestyle=:dot, linewidth = 3) 
+        vline!([predicted_medians_test[3]], linecolor = "black", linestyle=:dot, linewidth = 3)
         plot!(hdl_predicted3, xlabel="Age ($(smpl.Age_Unit)) for base of Russoya Member", ylabel="Likelihood (unnormalized)")
         savefig(hdl_predicted3, "InterpolatedAgeDistribution_h6_2.pdf")
         hdl_predicted4 = histogram(interpolated_distribution_test[:,4], nbins=50, label="")
-        vline!([predicted_medians_test[4]], linecolor = "black", linestyle=:dot, linewidth = 3) 
+        vline!([predicted_medians_test[4]], linecolor = "black", linestyle=:dot, linewidth = 3)
         plot!(hdl_predicted4, xlabel="Age ($(smpl.Age_Unit)) for base of Draken Formation", ylabel="Likelihood (unnormalized)")
         savefig(hdl_predicted4, "InterpolatedAgeDistribution_h7_2.pdf")
         hdl_predicted5 = histogram(interpolated_distribution_test[:,5], nbins=50, label="")
-        vline!([predicted_medians_test[5]], linecolor = "black", linestyle=:dot, linewidth = 3) 
+        vline!([predicted_medians_test[5]], linecolor = "black", linestyle=:dot, linewidth = 3)
         plot!(hdl_predicted5, xlabel="Age ($(smpl.Age_Unit)) for end of BSA", ylabel="Likelihood (unnormalized)")
         savefig(hdl_predicted5, "InterpolatedAgeDistribution_h9_2.pdf")
         hdl_predicted6 = histogram(interpolated_distribution[:,6], nbins=50, label="")
-        vline!([predicted_medians[6]], linecolor = "black", linestyle=:dot, linewidth = 3) 
+        vline!([predicted_medians[6]], linecolor = "black", linestyle=:dot, linewidth = 3)
         plot!(hdl_predicted6, xlabel="Age ($(smpl.Age_Unit)) for onset of BSA", ylabel="Likelihood (unnormalized)")
         savefig(hdl_predicted6, "InterpolatedAgeDistribution_h11_2.pdf")
         hdl_predicted7 = histogram(interpolated_distribution[:,7], nbins=50, label="")
-        vline!([predicted_medians[7]], linecolor = "black", linestyle=:dot, linewidth = 3) 
+        vline!([predicted_medians[7]], linecolor = "black", linestyle=:dot, linewidth = 3)
         plot!(hdl_predicted7, xlabel="Age ($(smpl.Age_Unit)) for Svalbard Russoya Re-Os", ylabel="Likelihood (unnormalized)")
         savefig(hdl_predicted7, "InterpolatedAgeDistribution_h5.pdf")
         hdl_predicted8 = histogram(interpolated_distribution[:,6], nbins=50, label="")
-        vline!([predicted_medians[6]], linecolor = "black", linestyle=:dot, linewidth = 3) 
+        vline!([predicted_medians[6]], linecolor = "black", linestyle=:dot, linewidth = 3)
         plot!(hdl_predicted8, xlabel="Age ($(smpl.Age_Unit)) for Svalbard Svanberg Re-Os", ylabel="Likelihood (unnormalized)")
         savefig(hdl_predicted8, "InterpolatedAgeDistribution_h8.pdf")
 
@@ -301,7 +287,7 @@
         beta_pdf2 = pdf.(Normal(therm2.Param[1], therm2.Sigma[1]), beta_range2)
         beta_range3 = 1:0.005:therm3.Param[1]+therm3.Sigma[1]*3 #three sigmas
         beta_pdf3 = pdf.(Normal(therm3.Param[1], therm3.Sigma[1]), beta_range3)
-        
+
         h1 = fit(Histogram, beta_t0dist1[1,:], nbins = 50)
         h2 = fit(Histogram, beta_t0dist2[1,:], nbins = 50)
         h3 = fit(Histogram, beta_t0dist3[1,:], nbins = 50)
@@ -323,7 +309,7 @@
         histogram!(twinx(), beta_t0dist3[1,:], label = "posterior", color=palette(:RdBu)[4], linecolor=nothing, xlims = (1,2), alpha = 0.5)
         histogram!(twinx(), beta_t0dist4[1,:], label = "posterior", color=palette(:RdBu)[10], linecolor=nothing, xlims = (1,2), alpha = 0.5)
         histogram!(twinx(), beta_t0dist5[1,:], label = "posterior", color=palette(:RdBu)[8], linecolor=nothing, xlims = (1,2), alpha = 0.5)
-        
+
         testplot2_1_v2 = plot(beta_range1, beta_pdf1, linecolor = "black", label = "prior", legend=:topright, xlims = (1,2))
         vline!([therm1.Param[1]], label = "actual beta", linecolor = "black", linestyle=:dot, linewidth = 2, xlims = (1,2)) #1.4+/-0.2
         plot!(beta_range2, beta_pdf2, linecolor = palette(:RdBu)[2], label = "prior", legend=:topright, xlims = (1,2))
@@ -334,7 +320,7 @@
         vline!([therm1.Param[1]], label = "actual beta", linecolor = "black", linestyle=:dot, linewidth = 2, xlims = (1,2), alpha = 0.5) #1.4+/-0.2
         plot!([therm2.Param[1]], [2.6], markerstrokecolor = palette(:RdBu)[2], markerstrokewidth = 3, xlims = (1,2), xerror = therm2.Sigma[1], alpha = 0.5)
         plot!([therm3.Param[1]], [2.7], markerstrokecolor = palette(:RdBu)[4], markerstrokewidth = 3, xlims = (1,2), xerror = therm3.Sigma[1], alpha = 0.5)
-        histogram!(twinx(), [beta_t0dist1[1,:],beta_t0dist2[1,:],beta_t0dist3[1,:],beta_t0dist4[1,:],beta_t0dist5[1,:]], seriescolor =["black",palette(:RdBu)[2],palette(:RdBu)[4],palette(:RdBu)[10],palette(:RdBu)[8]], linecolor=nothing, xlims = (1,2), alpha = 0.5) 
+        histogram!(twinx(), [beta_t0dist1[1,:],beta_t0dist2[1,:],beta_t0dist3[1,:],beta_t0dist4[1,:],beta_t0dist5[1,:]], seriescolor =["black",palette(:RdBu)[2],palette(:RdBu)[4],palette(:RdBu)[10],palette(:RdBu)[8]], linecolor=nothing, xlims = (1,2), alpha = 0.5)
 
         testplot2_1_v4 = scatter([therm1.Param[1]], [1000], ms = 3, markershape=:circle, markercolor = "black", markerstrokecolor = "black", markerstrokewidth = 2, xlims = (0.9,2), xerror = therm1.Sigma[1], ylims = (0,1100), legend = false)
         vline!([therm1.Param[1]], label = "actual beta", linecolor = "black", linestyle=:dot, linewidth = 2, xlims = (0.9,2)) #1.4+/-0.2
@@ -366,7 +352,7 @@
         plot!(g2, seriestype=:steps, label = "posterior", color =palette(:RdBu)[2], xlims = (280,550))
         plot!(g3, seriestype=:steps, label = "posterior", color =palette(:RdBu)[4], xlims = (280,550))
         plot!(g4, seriestype=:steps, label = "posterior", color =palette(:RdBu)[10], xlims = (280,550))
-        plot!(g5, seriestype=:steps, label = "posterior", color =palette(:RdBu)[8], xlims = (280,550))        
+        plot!(g5, seriestype=:steps, label = "posterior", color =palette(:RdBu)[8], xlims = (280,550))
         savefig(testplot2_2_v4, "Fig2b_t0_betaperturbs.pdf")
 
 
@@ -404,10 +390,10 @@
         Sμ_ideal = (E₀*1.4/pi)*sin(pi/1.4).*(1 .-exp.(-(400 .-subsmdl5.Age)./50))
         plot!(testplot4, subsmdl5.Age, Sμ_ideal, linecolor=:red, label="actual TS curve")
         savefig(testplot4, "SubsidenceCurveComparison_SensAna_Test5.pdf")
-    
+
         #Test Plot 5 (to see how the predicted ages for horizons-of-interest match the true values)
         testplot5 = histogram(predicted_ages[4,:], label = "predicted age for horizon 1", color ="blue", alpha = 0.5, legend=:topleft)
-        vline!([393.74], label = "actual age for horizon 1", linecolor = "black", linewidth = 2) 
+        vline!([393.74], label = "actual age for horizon 1", linecolor = "black", linewidth = 2)
         vline!([nanmedian(predicted_ages,dims=2)[4]], label = "posterior median", linecolor = "blue", linewidth = 2)
         savefig(testplot5,"PredictedAge_SensAna_Test1_h4.pdf")
 
