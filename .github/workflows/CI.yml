@@ -63,8 +63,8 @@ jobs:
           julia --project=docs -e '
             using Documenter: DocMeta, doctest
             using Chron
-            DocMeta.setdocmeta!(Chron, :DocTestSetup, :(using Chron); recursive=true)
-            doctest(Chron)'
+            DocMeta.setdocmeta!(SubsidenceChron, :DocTestSetup, :(using SubsidenceChron); recursive=true)
+            doctest(SubsidenceChron)'
       - run: julia --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
