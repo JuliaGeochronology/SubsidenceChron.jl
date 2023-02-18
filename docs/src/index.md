@@ -1,14 +1,14 @@
 ```@meta
-CurrentModule = Chron
+CurrentModule = SubsidenceChron
 ```
 
-# Chron
+# SubsidenceChron
 
-Documentation for [Chron](https://github.com/brenhinkeller/Chron.jl).
+Documentation for [SubsidenceChron](https://github.com/brenhinkeller/SubsidenceChron.jl).
 
 ```@index
 ```
 
 ```@autodocs
-Modules = [Chron]
+Modules = [SubsidenceChron]
 ```

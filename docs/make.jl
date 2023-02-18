@@ -1,16 +1,16 @@
-using Chron
+using SubsidenceChron
 using Documenter
 
-DocMeta.setdocmeta!(Chron, :DocTestSetup, :(using Chron); recursive=true)
+DocMeta.setdocmeta!(SubsidenceChron, :DocTestSetup, :(using SubsidenceChron); recursive=true)
 
 makedocs(;
-    modules=[Chron],
+    modules=[SubsidenceChron],
     authors="C. Brenhin Keller",
-    repo="https://github.com/brenhinkeller/Chron.jl/blob/{commit}{path}#{line}",
-    sitename="Chron.jl",
+    repo="https://github.com/JuliaGeochronology/SubsidenceChron.jl/blob/{commit}{path}#{line}",
+    sitename="SubsidenceChron.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://brenhinkeller.github.io/Chron.jl",
+        canonical="https://juliageochronology.github.io/SubsidenceChron.jl",
         assets=String[],
     ),
     pages=[
@@ -19,6 +19,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/brenhinkeller/Chron.jl",
+    repo="github.com/brenhinkeller/SubsidenceChron.jl",
     devbranch = "main",
 )
