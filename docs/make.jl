@@ -19,6 +19,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/brenhinkeller/SubsidenceChron.jl",
+    repo="github.com/JuliaGeochronology/SubsidenceChron.jl",
     devbranch = "main",
 )
