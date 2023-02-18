@@ -1,3 +1,3 @@
 # SubsidenceChron.jl
 
-Chron.jl + subsidence modelling
+[Chron.jl](https://github.com/brenhinkeller/Chron.jl) + subsidence modelling
