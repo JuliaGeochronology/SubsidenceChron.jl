@@ -4,7 +4,7 @@ CurrentModule = SubsidenceChron
 
 # SubsidenceChron
 
-Documentation for [SubsidenceChron](https://github.com/brenhinkeller/SubsidenceChron.jl).
+Documentation for [SubsidenceChron](https://github.com/JuliaGeochronology/SubsidenceChron.jl).
 
 ```@index
 ```
