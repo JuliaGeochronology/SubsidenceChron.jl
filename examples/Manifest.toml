@@ -1201,7 +1201,7 @@ version = "0.4.7"
 
 [[deps.SubsidenceChron]]
 deps = ["Chron", "Distributions", "NaNStatistics", "ProgressMeter", "Reexport", "StatGeochemBase", "Test"]
-git-tree-sha1 = "d0ed57d65ef667d60db337f01e9631c4abc6ab9d"
+git-tree-sha1 = "8cce29c900236efb9e8d3a5a236860794ae0288f"
 repo-rev = "main"
 repo-url = "https://github.com/JuliaGeochronology/SubsidenceChron.jl"
 uuid = "f7321fe0-76de-4184-b262-f3439fe138fd"
