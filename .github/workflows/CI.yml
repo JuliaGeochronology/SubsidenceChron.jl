@@ -62,7 +62,7 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Documenter: DocMeta, doctest
-            using Chron
+            using SubsidenceChron
             DocMeta.setdocmeta!(SubsidenceChron, :DocTestSetup, :(using SubsidenceChron); recursive=true)
             doctest(SubsidenceChron)'
       - run: julia --project=docs docs/make.jl
