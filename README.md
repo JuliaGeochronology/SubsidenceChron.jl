@@ -6,6 +6,10 @@
 
 [Chron.jl](https://github.com/brenhinkeller/Chron.jl) + subsidence modelling
 
+### Installation
+```
+] add SubsidenceChron
+```
 
 [docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
 [docs-dev-url]: https://JuliaGeochronology.github.io/SubsidenceChron.jl/dev/
