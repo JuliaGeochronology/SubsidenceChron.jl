@@ -13,8 +13,11 @@ function decompact!(yₚ, y, ϕ₀, c, n, m; niterations = 10)
     yₚ[n-m+2] = yₚ[n-m+1] + δy
     # In this for loop, the initial approximatation for the thickness of a given layer is the present-day thickness of that layer (calculated above)
     # The true thickness is then reached by running the decompaction equation multiple times (niterations)
+    e₁ = exp(-c*yₚ[n-m+1])
+    e₃₄ = exp(-c*y[n]) - exp(-c*y[n+1])
     @inbounds for idx=1:niterations
-        yₚ[n-m+2] = yₚ[n-m+1] + δy + ϕ₀/c * ((exp(-c*yₚ[n-m+1]) - exp(-c*yₚ[n-m+2])) - (exp(-c*y[n]) - exp(-c*y[n+1])))
+        # yₚ[n-m+2] = yₚ[n-m+1] + δy + ϕ₀/c * ((exp(-c*yₚ[n-m+1]) - exp(-c*yₚ[n-m+2])) - (exp(-c*y[n]) - exp(-c*y[n+1])))
+        yₚ[n-m+2] = yₚ[n-m+1] + δy + ϕ₀/c * ((e₁ - exp(-c*yₚ[n-m+2])) - e₃₄)
     end
 end
 
