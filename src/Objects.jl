@@ -15,6 +15,20 @@
     end
     export NewStratData
 
+    mutable struct WaterDepth
+        DepthID::Array{String}
+        Thickness::Array{Float64,1}
+    end
+
+    function NewWaterDepth(wd_nLayers)
+        wd = WaterDepth(
+            fill("", wd_nLayers),
+            fill(NaN, wd_nLayers),
+        )
+        return wd
+    end
+    export NewWaterDepth
+
     # A type of object to hold data about the thermal subsidence parameters
     mutable struct ThermalSubsidenceParameters
         Param::Array{Float64,1}

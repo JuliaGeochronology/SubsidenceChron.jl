@@ -15,11 +15,18 @@
     strat.Lithology          = data_csv["Lithology"]
     strat.Thickness         .= data_csv["Thickness"]
 
+    wd_csv = importdataset("examples/Svalbard_SequenceStrat.csv", ',')
+    wd_nLayers = length(wd_csv["Thickness"])
+
+    wd = NewWaterDepth(wd_nLayers)
+    wd.DepthID    = wd_csv["Type"]
+    wd.Thickness .= wd_csv["Thickness"] 
+
     nsims = 50 #5000
     res = 0.001
 
 ## --- Run the decompaction and backstripping MC model
-    @time (Sₜ, Sμ, Sσ, model_strat_heights, paleo_wd_dist) = DecompactBackstrip(strat, nsims, res)
+    @time (Sₜ, Sμ, Sσ, model_strat_heights, paleo_wd_dist) = DecompactBackstrip(strat, wd, nsims, res)
 
     #=
     # Store and read results

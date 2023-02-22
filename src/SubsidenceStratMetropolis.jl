@@ -21,7 +21,7 @@ function decompact!(yₚ, y, ϕ₀, c, n, m; niterations = 10)
     end
 end
 
-function DecompactBackstrip(strat::StratData, nsims, res)
+function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
 
     # Import data from csv and assign parameters for each lithology
         lithology_inputs = strat.Lithology
@@ -82,7 +82,7 @@ function DecompactBackstrip(strat::StratData, nsims, res)
         # decompacted depth
         Y = fill(1E-18, (model_nlayer+1, model_nlayer+1))
         # decompacted depth after applying varies corrections
-        Y_corr = fill(1E-18, (model_nlayer+1, model_nlayer+1))
+        #Y_corr = fill(1E-18, (model_nlayer+1, model_nlayer+1))
         #Y_max = fill(1E-18, (nsims, model_nlayer))
 
         c_highres = Array{Float64,1}(undef, model_nlayer)
@@ -146,23 +146,40 @@ function DecompactBackstrip(strat::StratData, nsims, res)
             #rand_wd = 0.2*rand()
             #paleo_wd_dist[sim]=rand_wd
             #paleo_sl_highres = fill(0, model_nlayer+1)
-            paleo_wd_highres = fill(0, model_nlayer+1)
-            #=
-            paleo_sl_highres = Array{Float64,1}(undef, model_nlayer+1)
+            #paleo_wd_highres = fill(0, model_nlayer+1)
+        
+            wd_id_inputs = wd.DepthID
+            wd_height_inputs = cumsum([0; wd.Thickness])
+            wd_nlayer_input = length(wd.Thickness)
+            
+            #model_strat_heights = [0:res:maximum(height_inputs);] #this will be the same for strat and wd - need to specify that in the documentation
+            #model_nlayer = length(model_strat_heights)-1 #this will be the same for strat and wd - need to specify that in the documentation
+    
+            paleo_wd_dist = Array{Distribution,1}(undef, wd_nlayer_input)
+
+            for i = 1:wd_nlayer_input
+                if wd_id_inputs[i] == "Exposure"
+                    paleo_wd_dist[i] = Uniform(0, 0.00001)
+                elseif wd_id_inputs[i] == "FWWB"
+                    paleo_wd_dist[i] = Uniform(0.005,0.015)
+                elseif wd_id_inputs[i] == "SWB"
+                    paleo_wd_dist[i] = Uniform(0.015,0.04)
+                elseif wd_id_inputs[i] == "BWB"
+                    paleo_wd_dist[i] = Uniform(0.04,0.1)
+                end
+            end      
+
+            paleo_wd = rand.(paleo_wd_dist)
             paleo_wd_highres = Array{Float64,1}(undef, model_nlayer+1)
-            paleo_sl_highres[1] = paleo_sl[1]
             paleo_wd_highres[1] = paleo_wd[1]
 
-
-            for i = 1:nlayer_input+1
+            for i = 1:wd_nlayer_input
                 for j = 1:model_nlayer+1
-                    if model_strat_heights[j]>height_inputs[i]
-                        paleo_sl_highres[j]=paleo_sl[i+1]
-                        paleo_wd_highres[j]=paleo_wd[i+1]
+                    if model_strat_heights[j]>wd_height_inputs[i]
+                        paleo_wd_highres[j]=paleo_wd[i]
                     end
                 end
             end
-            =#
 
             #Y_corr[end] = 0-paleo_sl_highres[end]*(ρw/(ρm-ρw))+paleo_wd_highres[end]-paleo_sl_highres[end]
             #Sₜ_km[end,:] .= copy(Y_corr[end])*(ρm/(ρm-ρw))
