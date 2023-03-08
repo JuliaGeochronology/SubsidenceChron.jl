@@ -21,6 +21,7 @@ function decompact!(yₚ, y, ϕ₀, c, n, m; niterations = 10)
     end
 end
 
+# Decompaction and backstripping (Method 1: with water depth inputs)
 function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
 
     # Import data from csv and assign parameters for each lithology
@@ -46,6 +47,10 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
             # ϕ₀ has a lower bound of 0 and an upper bound of 1 b/c of the definition of porosity
             ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
             ρg[i] = 2720
+        elseif lithology_inputs[i] == "Siltstone"
+            c_dist[i] = truncated(Normal(0.39, 0.1), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.56, 0.1), 0, 1)
+            ρg[i] = 2640 # Might need to update this number
         elseif lithology_inputs[i] == "Sandstone"
             c_dist[i] = truncated(Normal(0.27, 0.1), 0, Inf)
             ϕ₀_dist[i] = truncated(Normal(0.49, 0.1), 0, 1)
@@ -79,39 +84,41 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
         ρm = 3330
 
         # Allocate depth matricies (rows are strat horizons, columns are timesteps)
-        # decompacted depth
+        # Decompacted depth
         Y = fill(1E-18, (model_nlayer+1, model_nlayer+1))
-        # decompacted depth after applying varies corrections
-        #Y_corr = fill(1E-18, (model_nlayer+1, model_nlayer+1))
-        #Y_max = fill(1E-18, (nsims, model_nlayer))
 
+        # Allocate decompaction parameter matricies (for all modeled layers with a resolution = res)
         c_highres = Array{Float64,1}(undef, model_nlayer)
         ϕ₀_highres = Array{Float64,1}(undef, model_nlayer)
         ρg_highres = Array{Float64,1}(undef, model_nlayer)
 
-        #Allocate porosity, density and tectonic subsidence matricies
-        # porosity of a strat unit at any depth
-        ϕ_avg = fill(1E-18, (model_nlayer, model_nlayer+1))
-        # bulk density of a single layer
-        ρ_bulk = fill(1E-18, (model_nlayer, model_nlayer+1))
-        # intermediate step - bulk density*thickness of a single layer
-        m_bulk = fill(1E-18, (model_nlayer, model_nlayer+1))
-        # bulk density of the entire column
-        ρ_bulk_column = Array{Float64,1}(undef, model_nlayer+1)
-        # tectonic subsidence # this is the only one that will need to propagate outside of the loop
-        Sₜ_km = Array{Float64,2}(undef, model_nlayer+1, nsims)
-
+        # Allocate paleo water depth matrix (for all modeled layers with a resolution = res)
         paleo_wd_dist = Array{Float64,1}(undef, nsims)
 
+        # Allocate porosity, density and tectonic subsidence matricies
+        # Porosity of a strat unit at any depth
+        ϕ_avg = fill(1E-18, (model_nlayer, model_nlayer+1))
+        # Bulk density of a single layer
+        ρ_bulk = fill(1E-18, (model_nlayer, model_nlayer+1))
+        # Intermediate step - bulk density*thickness of a single layer
+        m_bulk = fill(1E-18, (model_nlayer, model_nlayer+1))
+        # Bulk density of the entire column
+        ρ_bulk_column = Array{Float64,1}(undef, model_nlayer+1)
+        # Tectonic subsidence # this is the only one that will need to propagate outside of the loop
+        Sₜ_km = Array{Float64,2}(undef, model_nlayer+1, nsims)
+
     # MC for decompaction and backstripping
+        # Visualize the progress in terminal
         print("Decompaction and Backstripping: ", nsims, " steps\n")
         pgrs = Progress(nsims, desc="Decompaction and Backstripping...")
         pgrs_interval = ceil(Int,10)
+        
         for sim = 1:nsims
-            # randomly select c and ϕ₀ vectors (for the whole column) from the distributions
+            # Randomly select c and ϕ₀ vectors from the distributions for each input layer
             c = rand.(c_dist)
             ϕ₀ = rand.(ϕ₀_dist)
-
+            
+            # Propagate these selections to every model layers; all model layers from the same input layer get the same c and ϕ₀ values
             @inbounds for i = 1:nlayer_input
                 for j = 1:model_nlayer
                     if model_strat_heights[j+1]>height_inputs[i]
@@ -136,27 +143,14 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
                 end
             end
 
-            # Apply decompaction corrections
-            #=
-            # vector for paleo sea-level corrections (each element represents a time step)
-            paleo_sl = fill(0,nlayer_input+1) #using zeros for now but should turn this into a distribution
-            # vector for paleo water-depth corrections (each element represents a time step)
-            paleo_wd = fill(200*rand(),nlayer_input+1)  #using zeros for now but should correlate with lithology?
-            =#
-            #rand_wd = 0.2*rand()
-            #paleo_wd_dist[sim]=rand_wd
-            #paleo_sl_highres = fill(0, model_nlayer+1)
-            #paleo_wd_highres = fill(0, model_nlayer+1)
-        
+            # Import water depth correction data (water depth categories based on sedimentological evidences)
             wd_id_inputs = wd.DepthID
             wd_height_inputs = cumsum([0; wd.Thickness])
             wd_nlayer_input = length(wd.Thickness)
             
-            #model_strat_heights = [0:res:maximum(height_inputs);] #this will be the same for strat and wd - need to specify that in the documentation
-            #model_nlayer = length(model_strat_heights)-1 #this will be the same for strat and wd - need to specify that in the documentation
-    
+            # Allocate matrix for paleo-water depth distributions (for all water depth input layers)
             paleo_wd_dist = Array{Distribution,1}(undef, wd_nlayer_input)
-
+            # Define the water depth distributions for all input layers based on their water depth classifications
             for i = 1:wd_nlayer_input
                 if wd_id_inputs[i] == "Exposure"
                     paleo_wd_dist[i] = Uniform(0, 0.00001)
@@ -169,10 +163,14 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
                 end
             end      
 
+            # Randomly select paleo water depth value (from the distributions) for each input layer
             paleo_wd = rand.(paleo_wd_dist)
+            # Allocate paleo_wd matrix for all modeled layers with a resolution = res
             paleo_wd_highres = Array{Float64,1}(undef, model_nlayer+1)
+            
+            # Setup this matrix - paleo water depth for the first (topmost) modeled layer should be the same as the paleo water depth for the first input layer 
             paleo_wd_highres[1] = paleo_wd[1]
-
+            # Propagate these selections to every model layers; all model layers from the same input layer get the same paleo water depth
             for i = 1:wd_nlayer_input
                 for j = 1:model_nlayer+1
                     if model_strat_heights[j]>wd_height_inputs[i]
@@ -181,27 +179,28 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
                 end
             end
 
-            #Y_corr[end] = 0-paleo_sl_highres[end]*(ρw/(ρm-ρw))+paleo_wd_highres[end]-paleo_sl_highres[end]
-            #Sₜ_km[end,:] .= copy(Y_corr[end])*(ρm/(ρm-ρw))
-            #Y_max[sim, :] = maximum(Y_corr, dims = 1)
-
             # Remove the effect of sediment load - same indexing logic as the decompaction loop
             # i = time steps (columns) = 1:layer_count b/c need to calculate these parameters for the present day column/layers
             # j = layer number = i:layer_count b/c the ith column begins with y₁' of layer i
             @inbounds for i = 1:model_nlayer+1
                 for j = i:model_nlayer
+                    # Average porosity of all modeled layers 
                     ϕ_avg[j-i+1,i] = (ϕ₀_highres[j]/c_highres[j])*(exp(-c_highres[j]*Y[j-i+1,i])-exp(-c_highres[j]*Y[j-i+2,i]))/(Y[j-i+2,i]-Y[j-i+1,i])
+                    # Bulk density of all modeled layers
                     ρ_bulk[j-i+1,i] = ρw*ϕ_avg[j-i+1,i]+(1-ϕ_avg[j-i+1,i])*ρg_highres[j]
+                    # Mass of all modeled layers
                     m_bulk[j-i+1,i] = (Y[j-i+2,i]-Y[j-i+1,i])*ρ_bulk[j-i+1,i]
                 end
             end
-
+            # (Mass = 0 for the last column, which represents the moment right before the deposition of the bottommost layer)
             m_bulk[:,end] .= 0
+            
+            # Backstripping calculations
             for i = 1:model_nlayer+1
-                # maximum(Y_corr[:,i]) = total depth of column at time step i
+                # Bulk density of all the columns (aka bulk densities of the whole sediment column for all timesteps)
+                # maximum([:,i]) = total depth of column at time step i
                 ρ_bulk_column[i] = sum(m_bulk[:,i])/maximum(Y[:,i])
-                #Y_corr[:,i] = copy(Y[:,i]).-paleo_sl_highres[i]*(ρw/(ρm-ρw)).+paleo_wd_highres[i].-paleo_sl_highres[i]
-                #Sₜ_km[i,sim] = copy(Y_corr[model_nlayer+2-i,i])*((ρm-ρ_bulk_column[i])/(ρm-ρw))
+                # Tectonic subsidence for all timesteps; record results from all simulations
                 Sₜ_km[i,sim] = copy(Y[model_nlayer+2-i,i])*((ρm-ρ_bulk_column[i])/(ρm-ρw)).+paleo_wd_highres[i]
             end
 
@@ -216,6 +215,163 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
 
     return Sₜ, Sμ, Sσ, model_strat_heights, paleo_wd_dist
 end
+
+# Decompaction and backstripping (Method 2: without water depth inputs)
+function DecompactBackstrip(strat::StratData, nsims, res)
+
+    # Import data from csv and assign parameters for each lithology
+        lithology_inputs = strat.Lithology
+        height_inputs = cumsum([0; strat.Thickness])
+        nlayer_input = length(strat.Thickness)
+        model_strat_heights = [0:res:maximum(height_inputs);]
+        model_nlayer = length(model_strat_heights)-1
+
+    # Allocate parameters as distributions; each element/distribution represents a layer
+        # porosity depth coefficient(c)
+        c_dist = Array{Distribution,1}(undef, nlayer_input)
+        # surface porosity (ϕ₀)
+        ϕ₀_dist = Array{Distribution,1}(undef, nlayer_input)
+        # sediment grain density (ρg)
+        ρg = Array{Float64,1}(undef, nlayer_input)
+
+    # Find the correct c, ϕ₀, and ρg for each layer based on lithology
+    for i = 1:nlayer_input
+        if lithology_inputs[i] == "Shale"
+            # c has a lower bound of 0 b/c porosity at depth should not be greater than porosity at surface
+            c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
+            # ϕ₀ has a lower bound of 0 and an upper bound of 1 b/c of the definition of porosity
+            ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
+            ρg[i] = 2720
+        elseif lithology_inputs[i] == "Siltstone"
+            c_dist[i] = truncated(Normal(0.39, 0.1), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.56, 0.1), 0, 1)
+            ρg[i] = 2640 # Might need to update this number
+        elseif lithology_inputs[i] == "Sandstone"
+            c_dist[i] = truncated(Normal(0.27, 0.1), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.49, 0.1), 0, 1)
+            ρg[i] = 2650
+        elseif lithology_inputs[i] == "Chalk"
+            c_dist[i] = truncated(Normal(0.71, 0.15), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.7, 0.15), 0, 1)
+            ρg[i] = 2710
+        elseif lithology_inputs[i] == "Limestone"
+            c_dist[i] = truncated(Normal(0.6, 0.2), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.4, 0.17), 0, 1)
+            ρg[i] = 2710
+        elseif lithology_inputs[i] == "Dolostone"
+            c_dist[i] = truncated(Normal(0.6, 0.2), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.2, 0.1), 0, 1)
+            ρg[i] = 2870
+        elseif lithology_inputs[i] == "Anhydrite"
+            c_dist[i] = truncated(Normal(0.2, 0.1), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.05, 0.05), 0, 1)
+            ρg[i] = 2960
+        elseif lithology_inputs[i] == "Quartzite"
+            c_dist[i] = truncated(Normal(0.3, 0.1), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.2, 0.1), 0, 1)
+            ρg[i] = 2650
+        end
+    end
+
+    # Prep for decompaction and backstripping MC
+        # Define parameters for decompaction (number of simulations; water and mantle densities)
+        ρw = 1000
+        ρm = 3330
+
+        # Allocate depth matricies (rows are strat horizons, columns are timesteps)
+        # Decompacted depth
+        Y = fill(1E-18, (model_nlayer+1, model_nlayer+1))
+
+        # Allocate decompaction parameter matricies (for all modeled layers with a resolution = res)
+        c_highres = Array{Float64,1}(undef, model_nlayer)
+        ϕ₀_highres = Array{Float64,1}(undef, model_nlayer)
+        ρg_highres = Array{Float64,1}(undef, model_nlayer)
+
+        #Allocate porosity, density and tectonic subsidence matricies
+        # porosity of a strat unit at any depth
+        ϕ_avg = fill(1E-18, (model_nlayer, model_nlayer+1))
+        # bulk density of a single layer
+        ρ_bulk = fill(1E-18, (model_nlayer, model_nlayer+1))
+        # intermediate step - bulk density*thickness of a single layer
+        m_bulk = fill(1E-18, (model_nlayer, model_nlayer+1))
+        # bulk density of the entire column
+        ρ_bulk_column = Array{Float64,1}(undef, model_nlayer+1)
+        # tectonic subsidence # this is the only one that will need to propagate outside of the loop
+        Sₜ_km = Array{Float64,2}(undef, model_nlayer+1, nsims)
+
+    # MC for decompaction and backstripping
+        # Visualize the progress in terminal
+        print("Decompaction and Backstripping: ", nsims, " steps\n")
+        pgrs = Progress(nsims, desc="Decompaction and Backstripping...")
+        pgrs_interval = ceil(Int,10)
+        
+        for sim = 1:nsims
+            # Randomly select c and ϕ₀ vectors from the distributions for each input layer
+            c = rand.(c_dist)
+            ϕ₀ = rand.(ϕ₀_dist)
+
+            # Propagate these selections to every model layers; all model layers from the same input layer get the same c and ϕ₀ values
+            @inbounds for i = 1:nlayer_input
+                for j = 1:model_nlayer
+                    if model_strat_heights[j+1]>height_inputs[i]
+                        c_highres[j]=c[i]
+                        ϕ₀_highres[j]=ϕ₀[i]
+                        ρg_highres[j]=ρg[i]
+                    end
+                end
+            end
+
+            # Fill the first column with modern observed values (present-day depths)
+            Y[:,1] .= model_strat_heights
+            # Fill the first row with zeros
+            Y[1,:] .= 0
+
+            # Decompact
+            # i = time steps during decompaction, which runs from 2 to layer_count b/c column 1 is present day
+            # j = layer number, which runs from i to layer_count b/c the ith column begins with y₁' of layer i
+            for i = 2:model_nlayer
+                for j = i:model_nlayer
+                    decompact!(view(Y,:,i), model_strat_heights, ϕ₀_highres[j], c_highres[j], j, i)
+                end
+            end
+
+            # Remove the effect of sediment load - same indexing logic as the decompaction loop
+            # i = time steps (columns) = 1:layer_count b/c need to calculate these parameters for the present day column/layers
+            # j = layer number = i:layer_count b/c the ith column begins with y₁' of layer i
+            @inbounds for i = 1:model_nlayer+1
+                for j = i:model_nlayer
+                    # Average porosity of all modeled layers
+                    ϕ_avg[j-i+1,i] = (ϕ₀_highres[j]/c_highres[j])*(exp(-c_highres[j]*Y[j-i+1,i])-exp(-c_highres[j]*Y[j-i+2,i]))/(Y[j-i+2,i]-Y[j-i+1,i])
+                    # Bulk density of all modeled layers
+                    ρ_bulk[j-i+1,i] = ρw*ϕ_avg[j-i+1,i]+(1-ϕ_avg[j-i+1,i])*ρg_highres[j]
+                    # Mass of all modeled layers
+                    m_bulk[j-i+1,i] = (Y[j-i+2,i]-Y[j-i+1,i])*ρ_bulk[j-i+1,i]
+                end
+            end
+            # (Mass = 0 for the last column, which represents the moment right before the deposition of the bottommost layer)
+            m_bulk[:,end] .= 0
+
+            # Backstripping calculations
+            for i = 1:model_nlayer+1
+                # Bulk density of all the columns (aka bulk densities of the whole sediment column for all timesteps)
+                # maximum(Y_corr[:,i]) = total depth of column at time step i
+                ρ_bulk_column[i] = sum(m_bulk[:,i])/maximum(Y[:,i])
+                # Tectonic subsidence for all timesteps; record results from all simulations
+                Sₜ_km[i,sim] = copy(Y[model_nlayer+2-i,i])*((ρm-ρ_bulk_column[i])/(ρm-ρw))
+            end
+
+            mod(sim,pgrs_interval)==0 && update!(pgrs, sim)
+        end
+        update!(pgrs,nsims)
+
+        # Calculate summary statistics (mean and standard deviation)
+        Sₜ = copy(Sₜ_km).*1000
+        Sμ = dropdims(nanmean(Sₜ, dims=2), dims=2)
+        Sσ = dropdims(nanstd(Sₜ, dims=2), dims=2)
+
+    return Sₜ, Sμ, Sσ, model_strat_heights
+end
+
 
 ## --- Part 2: Age-depth modelling
 
@@ -236,7 +392,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
     # Run stratigraphic MCMC model
     print("Generating stratigraphic age-depth model...\n")
 
-    # Thermal subsidence model parameters
+    # Define thermal subsidence model parameters
         y_litho= 125000
         ρ_mantle = 3330
         ρ_water = 1000
@@ -276,11 +432,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             model_heights = (bottom-offset):resolution:(top+offset)
         end
 
-        if any(i -> i == -2138, Height) == true #Will replace this 2138 with a more generic function to identify whether we have a age constraint at the base of section
-            active_height_t = (model_heights .> bottom) .& (model_heights .<= top)
-        elseif any(i -> i == -2138, Height) == false
-            active_height_t = (model_heights .>= bottom) .& (model_heights .<= top)
-        end
+        active_height_t = (model_heights .>= bottom) .& (model_heights .<= top)
         npoints = length(model_heights)
 
     # STEP 1: calculate log likelihood of the modeled ages (and heights) in the initial proposal
@@ -327,15 +479,9 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
     # STEP 3: calculate log likelihood for the fit of the thermal subsidence curve in the initial proposal
         ts_model_ages = reverse(model_ages[active_height_t])
         model_heights_all = copy(-model_strat_heights).*1000
-        if any(i -> i == -2138, Height) == true #Will replace this 2138 with a more generic function to identify whether we have a age constraint at the base of section
-            ts_Sμ = Sμ[(model_heights_all .> bottom) .& (model_heights_all .<= top)]
-            ts_Sσ = Sσ[(model_heights_all .> bottom) .& (model_heights_all .<= top)]
-        elseif any(i -> i == -2138, Height) == false
-            ts_Sμ = Sμ[(model_heights_all .>= bottom) .& (model_heights_all .<= top)]
-            ts_Sσ = Sσ[(model_heights_all .>= bottom) .& (model_heights_all .<= top)]
-        end
-
-        ll += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_ages, subs_parameters)
+        ts_Sμ = Sμ[(model_heights_all .>= bottom) .& (model_heights_all .<= top)]
+        ts_Sσ = Sσ[(model_heights_all .>= bottom) .& (model_heights_all .<= top)]
+        ll += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_ages, subs_parameters)/(length(ts_Sμ))
 
     # Preallocate variables for MCMC proposals
         llₚ = ll
@@ -408,7 +554,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
             ts_model_agesₚ = reverse(model_agesₚ[active_height_t])
-            llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)
+            llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)/(length(ts_Sμ))
 
             # Accept or reject proposal based on likelihood
             if log(rand(Float64)) < (llₚ - ll)
@@ -493,7 +639,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
             ts_model_agesₚ = reverse(model_agesₚ[active_height_t])
-            llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)
+            llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)/(length(ts_Sμ))
 
             # Accept or reject proposal based on likelihood
             if log(rand(Float64)) < (llₚ - ll)
@@ -519,7 +665,6 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
 
     # Crop the result
         agedist = agedist[active_height_t,:]
-
         subsmdl = SubsidenceStratAgeModel(
             model_heights[active_height_t], # Model heights
             nanmean(agedist,dim=2), # Mean age
@@ -538,13 +683,14 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             nanpctile(beta_t0dist[2,:],2.5,dim=1), # 2.5th percentile
             nanpctile(beta_t0dist[2,:],97.5,dim=1) # 97.5th percentile
         )
-
     return subsmdl, agedist, lldist, beta_t0dist, lldist_burnin
 end
 
+#= Haven't checked the hiatus part yet - will review this for the next round of changes
+## --- Stratigraphic MCMC model with hiatus # # # # # # # # # # # # # # # # #
 
 
-# Part 2b: Modified StratMetropolis for extensional basins - with hiatus (when we only know the strat height and do not have any previous knowledge about the duration)
+# Part 2b: Modified StratMetropolis for extensional basins with hiatus (when we only know the strat height and do not have any previous knowledge about the duration)
 
 function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConfiguration, therm::ThermalSubsidenceParameters, model_strat_heights, Sμ, Sσ, hiatus_height, beta_ip, t0_ip)
 
@@ -630,7 +776,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         model_heights_all = copy(-model_strat_heights).*1000
         ts_Sμ_hiatus = Sμ[bottom .<= model_heights_all .< hiatus_height]
         ts_Sσ_hiatus = Sσ[bottom .<= model_heights_all .< hiatus_height]
-        ll += subsidence_ll(E₀, τ, ts_Sμ_hiatus, ts_Sσ_hiatus, ts_model_ages_hiatus, subs_parameters)
+        ll += subsidence_ll(E₀, τ, ts_Sμ_hiatus, ts_Sσ_hiatus, ts_model_ages_hiatus, subs_parameters)/(length(ts_Sμ))
 
     # Preallocate variables for MCMC proposals
         llₚ = ll
@@ -703,7 +849,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
             ts_model_ages_hiatusₚ = reverse(model_agesₚ[active_height_t_hiatus])
-            llₚ += subsidence_ll(E₀, τ, ts_Sμ_hiatus, ts_Sσ_hiatus, ts_model_ages_hiatusₚ, subs_parametersₚ)
+            llₚ += subsidence_ll(E₀, τ, ts_Sμ_hiatus, ts_Sσ_hiatus, ts_model_ages_hiatusₚ, subs_parametersₚ)/(length(ts_Sμ))
 
             # Accept or reject proposal based on likelihood
             if log(rand(Float64)) < (llₚ - ll)
@@ -790,7 +936,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
             ts_model_ages_hiatusₚ = reverse(model_agesₚ[active_height_t_hiatus])
-            llₚ += subsidence_ll(E₀, τ, ts_Sμ_hiatus, ts_Sσ_hiatus, ts_model_ages_hiatusₚ, subs_parametersₚ)
+            llₚ += subsidence_ll(E₀, τ, ts_Sμ_hiatus, ts_Sσ_hiatus, ts_model_ages_hiatusₚ, subs_parametersₚ)/(length(ts_Sμ))
 
             # Accept or reject proposal based on likelihood
             if log(rand(Float64)) < (llₚ - ll)
@@ -850,8 +996,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
 end
 
 
-
-# Part 2c: Modified StratMetropolis for extensional basins - with hiata (when we know the duration of hiata relatively precisely)
+# Part 2c: Modified StratMetropolis for extensional basins with hiata (when we know the duration of hiata relatively precisely)
 
 function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConfiguration, therm::ThermalSubsidenceParameters, model_strat_heights, Sμ, Sσ, hiatus::HiatusData)
 
@@ -1213,5 +1358,6 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         )
     return subsmdl, agedist, lldist, hiatusdist, beta_t0dist
 end
+=#
 
 ## --- End of File

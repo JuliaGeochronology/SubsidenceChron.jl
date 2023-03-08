@@ -1,66 +1,78 @@
 ## For subsidence modeling in extensional basins
 
-## --- Load required pacages, install Chron if required
+## --- Load required pacages, install SubsidenceChron if required
 
     using SubsidenceChron
     using StatGeochem, Distributions, Plots, Statistics, StatsBase
 
-## --- Part 1: Define properties of the stratigraphy
+## --- Part 1: Decompaction and Backstripping
 
     # # # # # # # # # # # Enter stratigraphic information here! # # # # # # # # # # # #
+    # Import the data file (.csv)
     data_csv = importdataset("examples/Svalbard_highres.csv",',')
+    # Obtain stratigraphic info from the data file
     nLayers = length(data_csv["Thickness"])
-
     strat = NewStratData(nLayers)
     strat.Lithology          = data_csv["Lithology"]
     strat.Thickness         .= data_csv["Thickness"]
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+
+    # # # # # # # # OPTIONAL - Enter paleo water depth information here! # # # # # # # # 
+    # Import the data file (.csv)
     wd_csv = importdataset("examples/Svalbard_SequenceStrat.csv", ',')
+    # Obtain paleo water depth info from the data file
     wd_nLayers = length(wd_csv["Thickness"])
-
     wd = NewWaterDepth(wd_nLayers)
     wd.DepthID    = wd_csv["Type"]
     wd.Thickness .= wd_csv["Thickness"] 
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    nsims = 50 #5000
+
+    # # # # # # # # # # Configure MC model here! # # # # # # # # # #
+    # Number of MCMC simulations
+    nsims = 5000 #5000
+    # Resolution for model horizons (in km)
     res = 0.001
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-## --- Run the decompaction and backstripping MC model
+    # Run the decompaction and backstripping MC model
+    # (wd input is optional)
     @time (Sₜ, Sμ, Sσ, model_strat_heights, paleo_wd_dist) = DecompactBackstrip(strat, wd, nsims, res)
 
-    #=
-    # Store and read results
+    #= Code for storing and reading decompaction + backstripping results - will be useful when testing the age-depth modeling part of the model
+    # Store results
     using DelimitedFiles
     writedlm("St_highres_5000sims.csv", Sₜ, ",")
     writedlm("St_mu_highres_5000sims.csv", Sμ)
     writedlm("St_sigma_highres_5000sims.csv", Sσ)
     writedlm("St_highres.txt", Sₜ)
-
-    Sₜ = readdlm("St_highres.csv", ',', Float64)
-    Sμ = readdlm("St_mu_highres.csv", ',', Float64)
-    Sσ = readdlm("St_sigma_highres.csv", ',', Float64)
-    Sσ_100 = 100 .+ Sσ
+    # Read results
+    Sₜ = readdlm("St_highres_5000sims.csv", ',', Float64)
+    Sμ = readdlm("St_mu_highres_5000sims.csv", ',', Float64)
+    Sσ = readdlm("St_sigma_highres_5000sims.csv", ',', Float64)
     =#
-
+    
     # Plot results - tectonic subsidence in comparison with present day stratigraphic heights
     p1 = plot(Sμ, alpha = 1, yflip = true, xflip = true, label = "Tectonic subsidence", color = "blue")
     plot!(p1, reverse((model_strat_heights)*1000), yflip = true, label = "Present-day thickness", color = "red")
     plot!(p1, Sₜ[:,2:end], alpha = 0.01, label = "", yflip = true, color = "blue", fg_color_legend=:white)
     savefig(p1, "Fig7a_DecompactBackstrip_higherres.pdf")
 
-## --- Part 2: Define properties of age constraints
+
+## --- Part 2a: Age-depth modeling 
 
     # # # # # # # # # # # Enter age constraint (sample) information here! # # # # # # # # # # # #
     # Input the number of samples we wish to model (must match below)
-    nSamples = 3
+    nSamples = 4
     # Make an instance of a Chron Section object for nSamples
     smpl = NewChronAgeData(nSamples)
-    smpl.Name          = ("Sample 2", "Sample 3", "Sample 4") # Et cetera
-    smpl.Age          .= [ 791.1,    737.5,   717] # Measured ages
-    smpl.Age_sigma    .= [  2.45,      4.8,   0.4] # Measured 1-σ uncertainties
-    smpl.Height       .= [ -1178,     -100,     0] # Depths below surface should be negative
-    smpl.Height_sigma .= [  0.01,     0.01,  0.01] # Usually assume little or no sample height uncertainty
-    smpl.Age_Sidedness .= [    0,        0,    +1] # Sidedness (zeros by default: geochron constraints are two-sided). Use -1 for a maximum age and +1 for a minimum age, 0 for two-sided
+    smpl.Name          = ("Sample 1", "Sample 2", "Sample 3", "Sample 4") # Et cetera
+    smpl.Age          .= [ 879.91,   791.1,    737.5,   717] # Measured ages
+    smpl.Age_sigma    .= [  0.63,     2.45,      4.8,   0.4] # Measured 1-σ uncertainties
+    smpl.Height       .= [ -2138,    -1178,     -100,     0] # Depths below surface should be negative
+    smpl.Height_sigma .= [  0.01,     0.01,     0.01,  0.01] # Usually assume little or no sample height uncertainty
+    smpl.Age_Sidedness .= [   -1,        0,        0,    +1] # Sidedness (zeros by default: geochron constraints are two-sided). Use -1 for a maximum age and +1 for a minimum age, 0 for two-sided
     smpl.Age_Unit = "Ma" # Unit of measurement for ages
     smpl.Height_Unit = "m" # Unit of measurement for Height and Height_sigma
 
@@ -68,9 +80,8 @@
     # -- i.e., stratigraphically younger samples must be more positive. For this
     # reason, it is convenient to represent depths below surface as negative
     # numbers.
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-## --- Define thermal subsidence model parameters
 
     # # # # # # # # # # Enter thermal subsidence parameter priors here! # # # # # # # # # #
     # Enter initial guesses for the beta factor and thermal subsidence onset age and their uncertainties
@@ -82,9 +93,8 @@
     therm = NewThermalSubsidenceParameters()
     therm.Param = [Beta, T0]
     therm.Sigma = [Beta_sigma, T0_sigma]
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-## --- Run stratigraphic model
 
     # # # # # # # # # # Configure stratigraphic model here! # # # # # # # # # #
     # Configure the stratigraphic Monte Carlo model
@@ -94,23 +104,16 @@
     config.bounding = 1.0 # how far away do we place runaway bounds, as a fraction of total section height. Larger is slower.
     (bottom, top) = extrema(smpl.Height)
     npoints_approx = round(Int,length(bottom:config.resolution:top) * (1 + 2*config.bounding))
-    config.nsteps = 50000 # Number of steps to run in distribution MCMC #!!TRIAL RUN SETTING!! ACTUAL RUNS SHOULD BE 15000
-    config.burnin = 10000*npoints_approx # Number to discard #!!TRIAL RUN SETTING!! ACTUAL RUNS SHOULD BE 10000
+    config.nsteps = 500 # Number of steps to run in distribution MCMC #!!TRIAL RUN SETTING!! ACTUAL RUNS SHOULD BE 15000
+    config.burnin = 1000*npoints_approx # Number to discard #!!TRIAL RUN SETTING!! ACTUAL RUNS SHOULD BE 10000
     config.sieve = round(Int,npoints_approx) # Record one out of every nsieve steps
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    ## --- Option 1: Stratigraphic MCMC model (without hiatus)
+    ## --- Option a: Stratigraphic MCMC model without hiatus
         #Run the model
         (subsmdl, agedist, lldist, beta_t0dist, lldist_burnin) = SubsidenceStratMetropolis(smpl, config, therm, model_strat_heights, Sμ, Sσ, 0.05, 10)
 
-        #=
-        # Experiment - another way to use the MDAs (as a criterion for filtering of t0)
-        DZ_filter = findall(x->x<=879.91, beta_t0dist1v2[2,:])
-        agedist2v3_filter = agedist1v2[:,DZ_filter]
-        beta_t0dist2v3_filter = beta_t0dist1v2[:,DZ_filter]
-        =#
-
-        #=
+        #= Code for storing and reading age-depth model results
         # Store and read results
         writedlm("agedist2.csv", agedist2, ",")
         writedlm("lldist2.csv", lldist2)
@@ -123,7 +126,7 @@
         lldist_burnin3 = readdlm("lldist_burnin3.csv", ',', Float64)
         =#
 
-        # Plot results (mean and 95% confidence interval for both model and data)
+        # Plot 1: Age-depth model (mean and 95% confidence interval for both model and data)
         hdl = plot([subsmdl.Age_025CI; reverse(subsmdl.Age_975CI)],[subsmdl.Height; reverse(subsmdl.Height)], fill=(round(Int,minimum(subsmdl.Height)),0.5,:blue), label="model")
         plot!(hdl, subsmdl.Age, subsmdl.Height, linecolor=:blue, label="", fg_color_legend=:white) # Center line
         t = smpl.Age_Sidedness .== 0 # Two-sided constraints (plot in black)
@@ -139,21 +142,51 @@
         savefig(hdl,"Svalbard_Result.pdf")
         #display(hdl)
 
-        #Plot posterior distributions
+        # Plot 2: Posterior distributions of beta
         post_beta = histogram(beta_t0dist[1,:], color="black", linecolor=nothing, alpha = 0.5, nbins=50)
         vline!([subsmdl.Beta_Median], linecolor = "black", linestyle=:dot, linewidth = 3)
-        savefig(post_beta, "Fig8a_Svalbard_PosteriorBeta.pdf")
+        savefig(post_beta, "Svalbard_PosteriorBeta.pdf")
+        
+        # Plot 3: Posterior distributions of t₀
         post_t0 = histogram(beta_t0dist[2,:], color="black", linecolor=nothing, alpha = 0.5, nbins=50)
         vline!([subsmdl.T0_Median], linecolor = "black", linestyle=:dot, linewidth = 3)
-        savefig(post_t0, "Fig8b_Svalbard_PosteriorT0.pdf")
+        savefig(post_t0, "Svalbard_PosteriorT0.pdf")
 
-        #If target horizon is not in the range of the age-depth model...
+        # Plot 4: Interpolate results for target horizons
+            #= For Svalbard:
+                -2138 = base of section (base of Akademikerbreen Gp)
+                -1694 = onset of Bitter Springs CIE
+                -1275 = terminatio of Bitter Springs CIE
+                -1013 = base of Draken Fm
+                -176 = base of Russoya Mb
+                -56 = onset of Russoya CIE
+                -1 = top of section (right below diamictite)
+            =#
+        target_height = [-2138, -1694, -1275, -1013, -176, -56, -1]
+        interpolated_distribution = Array{Float64}(undef, length(target_height), size(agedist,2))
+        # Interpolate between model horizons
+        for i=1:size(agedist,2)
+            interpolated_distribution[:,i] = linterp1s(subsmdl.Height,agedist[:,i],target_height)
+        end
+        # Calculate summary statistics
+        predicted_medians = nanmedian(interpolated_distribution, dims=1)
+        predicted_025CI = nanpctile(interpolated_distribution, 2.5, dims=1)
+        predicted_975CI = nanpctile(interpolated_distribution, 97.5, dims=1)
+        # Plotting (full distribution with mean as a dashed line)
+        age_interp = histogram(interpolated_distribution[:,2], nbins=50, label="")
+        vline!([predicted_medians[2]], linecolor = "black", linestyle=:dot, linewidth = 3)
+        plot!(age_interp, xlabel="Age ($(smpl.Age_Unit)) for the onset of Bitter Springs CIE", ylabel="Likelihood (unnormalized)")
+        savefig(age_interp, "Svalbard_InterpolatedAge_BSA_Onset.pdf")
+        display(age_interp)
+    
+
+        #=
+        # Plot 4 alternative ----
+        # If target horizon is not in the range of the age-depth model...
         #Calculate ages for target horizons based on the ideal subsidence curve
         target_height = [0, 0.444, 0.863, 1.125, 1.962, 2.082, 2.137]
         target_index = findclosest(target_height, model_strat_heights)
         target_subs = copy(Sₜ[target_index,:])
-        #target_subs_rand = Array{Float64,2}(undef, length(target_index), 20)
-        #t_subset = Array{Float64,1}(undef, 20)
         beta_t0dist_filter = Array{Float64,2}(undef, 2, config.nsteps)
         idx = 1
         for i = 1:config.nsteps
@@ -192,85 +225,25 @@
         end
         update!(pgrs, beta_t0_sample_size)
 
-        predicted1 = histogram(predicted_ages[1,:], color="black", linecolor=nothing, alpha = 0.5)
+        predicted = histogram(predicted_ages[1,:], color="black", linecolor=nothing, alpha = 0.5)
         vline!([nanmedian(predicted_ages, dims=2)[1]], linecolor = "black", linestyle=:dot, linewidth = 3)
-        savefig(predicted1, "Svalbard_BetaT0PredictedAge1_Case1v2.pdf")
-        predicted2 = histogram(predicted_ages[2,:], color="black", linecolor=nothing, alpha = 0.5)
-        vline!([nanmedian(predicted_ages, dims=2)[2]], linecolor = "black", linestyle=:dot, linewidth = 3)
-        savefig(predicted2, "Svalbard_BetaT0PredictedAge2_Case1v2.pdf")
-        predicted3 = histogram(predicted_ages[3,:], color="black", linecolor=nothing, alpha = 0.5)
-        vline!([nanmedian(predicted_ages, dims=2)[3]], linecolor = "black", linestyle=:dot, linewidth = 3)
-        savefig(predicted3, "Svalbard_BetaT0PredictedAge3_Case1v2.pdf")
-        predicted4 = histogram(predicted_ages2[4,:], color="black", linecolor=nothing, alpha = 0.5)
-        vline!([nanmedian(predicted_ages2, dims=2)[4]], linecolor = "black", linestyle=:dot, linewidth = 3)
-        savefig(predicted4, "Fig9a_Svalbard_PredictedAge4_Case2.pdf")
-        predicted5 = histogram(predicted_ages2[5,:], color="black", linecolor=nothing, alpha = 0.5)
-        vline!([nanmedian(predicted_ages2, dims=2)[5]], linecolor = "black", linestyle=:dot, linewidth = 3)
-        savefig(predicted5, "Fig9a_Svalbard_PredictedAge5_Case2.pdf")
-        predicted6 = histogram(predicted_ages2[6,:], color="black", linecolor=nothing, alpha = 0.5)
-        vline!([nanmedian(predicted_ages2, dims=2)[6]], linecolor = "black", linestyle=:dot, linewidth = 3)
-        savefig(predicted6, "Fig9a_Svalbard_PredictedAge6_Case2.pdf")
-        #predicted7 = histogram(predicted_ages[7,:], color="black", linecolor=nothing, alpha = 0.5)
-        #vline!([nanmedian(predicted_ages, dims=2)[7]], linecolor = "black", linestyle=:dot, linewidth = 3)
-        #savefig(predicted7, "Fig9a_Svalbard_PredictedAge7_2Ages.pdf")
+        savefig(predicted1, "Svalbard_BetaT0PredictedAge1.pdf")
+        =#
+    
 
-        #Interpolate full age distribution
-        height = [0, -56, -176, -1013, -1275, -1694]
-        height_test = [-1700, -1800, -1900, -2000, -2100]
-        height2 = [0, -56, -100, -176, -1013, -1178, -1275, -1694]
-        interpolated_distribution_test = Array{Float64}(undef,size(agedist,2), length(height))
-        for i = 1:length(height_test)
-            for j = 1:size(agedist,2)
-                interpolated_distribution_test[j,i] = linterp1s(subsmdl.Height,agedist[:,j],height[i])
-            end
+        #= Code for test plots
+        # Test Plot 1: see if younger strata can be accommodated by this one rifting event
+        p6 = plot([631.2], [1100], xerror = 1.9, yerror = 15, yflip = true, xflip = true)
+        plot!([541],[1323], yerror = 8)
+        τ = 50
+        E₀ = 3165.6475782289444
+        for i = 1:5000
+            xrange = 500:((beta_t0dist[2,i]-500)/1000):(beta_t0dist[2,i])
+            tec_subs = (E₀*beta_t0dist[1,i]/pi)*sin(pi/beta_t0dist[1,i]).*(1 .-exp.(-(beta_t0dist[2,i] .-xrange)./τ))
+            plot!(p6, xrange, tec_subs, alpha = 0.01, color = "blue", legend = false)
         end
-        predicted_medians_test = nanmedian(interpolated_distribution_test, dims=1)
-        predicted_025CI_test = nanpctile(interpolated_distribution_test, 2.5, dims=1)
-        predicted_975CI_test = nanpctile(interpolated_distribution_test, 97.5, dims=1)
 
-        hdl_predicted1 = histogram(interpolated_distribution_test[:,1], nbins=50, label="")
-        vline!([predicted_medians_test[1]], linecolor = "black", linestyle=:dot, linewidth = 3)
-        plot!(hdl_predicted1, xlabel="Age ($(smpl.Age_Unit)) for top of section", ylabel="Likelihood (unnormalized)")
-        savefig(hdl_predicted1, "InterpolatedAgeDistribution_h2_2.pdf")
-        hdl_predicted2 = histogram(interpolated_distribution_test[:,2], nbins=50, label="")
-        vline!([predicted_medians_test[2]], linecolor = "black", linestyle=:dot, linewidth = 3)
-        plot!(hdl_predicted2, xlabel="Age ($(smpl.Age_Unit)) for onset of Russoya anomaly", ylabel="Likelihood (unnormalized)")
-        savefig(hdl_predicted2, "InterpolatedAgeDistribution_h4_2.pdf")
-        hdl_predicted3 = histogram(interpolated_distribution_test[:,3], nbins=50, label="")
-        vline!([predicted_medians_test[3]], linecolor = "black", linestyle=:dot, linewidth = 3)
-        plot!(hdl_predicted3, xlabel="Age ($(smpl.Age_Unit)) for base of Russoya Member", ylabel="Likelihood (unnormalized)")
-        savefig(hdl_predicted3, "InterpolatedAgeDistribution_h6_2.pdf")
-        hdl_predicted4 = histogram(interpolated_distribution_test[:,4], nbins=50, label="")
-        vline!([predicted_medians_test[4]], linecolor = "black", linestyle=:dot, linewidth = 3)
-        plot!(hdl_predicted4, xlabel="Age ($(smpl.Age_Unit)) for base of Draken Formation", ylabel="Likelihood (unnormalized)")
-        savefig(hdl_predicted4, "InterpolatedAgeDistribution_h7_2.pdf")
-        hdl_predicted5 = histogram(interpolated_distribution_test[:,5], nbins=50, label="")
-        vline!([predicted_medians_test[5]], linecolor = "black", linestyle=:dot, linewidth = 3)
-        plot!(hdl_predicted5, xlabel="Age ($(smpl.Age_Unit)) for end of BSA", ylabel="Likelihood (unnormalized)")
-        savefig(hdl_predicted5, "InterpolatedAgeDistribution_h9_2.pdf")
-        hdl_predicted6 = histogram(interpolated_distribution[:,6], nbins=50, label="")
-        vline!([predicted_medians[6]], linecolor = "black", linestyle=:dot, linewidth = 3)
-        plot!(hdl_predicted6, xlabel="Age ($(smpl.Age_Unit)) for onset of BSA", ylabel="Likelihood (unnormalized)")
-        savefig(hdl_predicted6, "InterpolatedAgeDistribution_h11_2.pdf")
-        hdl_predicted7 = histogram(interpolated_distribution[:,7], nbins=50, label="")
-        vline!([predicted_medians[7]], linecolor = "black", linestyle=:dot, linewidth = 3)
-        plot!(hdl_predicted7, xlabel="Age ($(smpl.Age_Unit)) for Svalbard Russoya Re-Os", ylabel="Likelihood (unnormalized)")
-        savefig(hdl_predicted7, "InterpolatedAgeDistribution_h5.pdf")
-        hdl_predicted8 = histogram(interpolated_distribution[:,6], nbins=50, label="")
-        vline!([predicted_medians[6]], linecolor = "black", linestyle=:dot, linewidth = 3)
-        plot!(hdl_predicted8, xlabel="Age ($(smpl.Age_Unit)) for Svalbard Svanberg Re-Os", ylabel="Likelihood (unnormalized)")
-        savefig(hdl_predicted8, "InterpolatedAgeDistribution_h8.pdf")
-
-        hdl_predicted_compare = histogram(interpolated_distribution[:,3], nbins=50, label="", alpha = 0.2)
-        histogram!(hdl_predicted_compare, interpolated_distribution3[:,3], nbins=50, label="", alpha = 0.2)
-        histogram!(hdl_predicted_compare, interpolated_distribution4[:,3], nbins=50, label="", alpha = 0.2)
-        savefig(hdl_predicted_compare, "InterpolatedAgeDistributionComparison_h6_Cases134.pdf")
-        hdl_predicted_compare2 = histogram(interpolated_distribution[:,4], nbins=50, label="", alpha = 0.2)
-        histogram!(hdl_predicted_compare2, interpolated_distribution3[:,4], nbins=50, label="", alpha = 0.2)
-        histogram!(hdl_predicted_compare2, interpolated_distribution4[:,4], nbins=50, label="", alpha = 0.2)
-        savefig(hdl_predicted_compare2, "InterpolatedAgeDistributionComparison_h7_Cases134.pdf")
-
-        #Test Plot 2 (to see how well the model predicted beta and t0 matches the actual values):
+        #Test Plot 2: see how well the model predicted beta and t0 matches the actual values:
         beta_range1 = 1:0.005:therm1.Param[1]+therm1.Sigma[1]*3 #three sigmas
         t0_range1 = therm1.Param[2]-therm1.Sigma[2]*3:1:therm1.Param[2]+therm1.Sigma[2]*3 #three sigmas
         beta_pdf1 = pdf.(Normal(therm1.Param[1], therm1.Sigma[1]), beta_range1)
@@ -348,7 +321,7 @@
         savefig(testplot2_2_v4, "Fig2b_t0_betaperturbs.pdf")
 
 
-        #Test Plot 3 (to see how ll and the different ll components change throughout the whole run):
+        #Test Plot 3: see how ll and the different ll components change throughout the whole run:
         testplot3_1 = plot(lldist_subs, label = "Subsidence" , legend=:bottomright)
         plot!(testplot3_1, lldist_age, label = "Age")
         plot!(testplot3_1, lldist_tsparam, label = "TS Parameters")
@@ -358,7 +331,7 @@
         testplot3_2 = plot(lldist1, label = "ll of accepted proposals" , legend=:bottomright)
         savefig(testplot3_2, "LL_SensAna_Test1.pdf")
 
-        #Test Plot 4 (to see how well is the model doing matching the ideal subsidence curve)
+        #Test Plot 4: see how well is the model doing matching the ideal subsidence curve:
         Sₜ_025CI = nanpctile(Sₜ, 2.5, dims = 2)[6:86]
         Sₜ_975CI = nanpctile(Sₜ, 97.5, dims = 2)[6:86]
         Sμ_crop = Sμ[6:86]
@@ -383,15 +356,18 @@
         plot!(testplot4, subsmdl5.Age, Sμ_ideal, linecolor=:red, label="actual TS curve")
         savefig(testplot4, "SubsidenceCurveComparison_SensAna_Test5.pdf")
 
-        #Test Plot 5 (to see how the predicted ages for horizons-of-interest match the true values)
+        #Test Plot 5: see how the predicted ages for horizons-of-interest match the true values:
         testplot5 = histogram(predicted_ages[4,:], label = "predicted age for horizon 1", color ="blue", alpha = 0.5, legend=:topleft)
         vline!([393.74], label = "actual age for horizon 1", linecolor = "black", linewidth = 2)
         vline!([nanmedian(predicted_ages,dims=2)[4]], label = "posterior median", linecolor = "blue", linewidth = 2)
         savefig(testplot5,"PredictedAge_SensAna_Test1_h4.pdf")
 
 
-    ## --- Option 2: Stratigraphic MCMC model including a hiatus with unknown duration - NOT WORKING YET!
+
+
     #=
+    ## --- Option 2: Stratigraphic MCMC model including a hiatus with unknown duration - NOT WORKING YET!
+
         #Input strat height of hiatus
         hiatus_height = -500
 
@@ -412,7 +388,6 @@
         plot!(hdl_hiatus, xlabel="Age ($(smpl.Age_Unit))", ylabel="Height ($(smpl.Height_Unit))")
         savefig(hdl_hiatus,"AgeDepthModel_hiatus_failed_moreages.pdf")
         display(hdl_hiatus)
-    =#
 
     ## --- Option 3: Stratigraphic MCMC model including hiata with known durations
         # Data about hiata
@@ -431,8 +406,9 @@
         plot!(hdl, subsmdl.Age, subsmdl.Height, linecolor=:blue, label="", fg_color_legend=:white)
         plot!(hdl, smpl.Age, smpl.Height, xerror=smpl.Age_sigma*2,label="data",seriestype=:scatter,color=:black)
         plot!(hdl, xlabel="Age ($(smpl.Age_Unit))", ylabel="Height ($(smpl.Height_Unit))")
+    =#
 
-#=
+    #=
     # More plots - NOT READY TO RUN - still need to readjust the format
 
     curve_ages = similar(Sμ)
@@ -458,6 +434,6 @@
 
     scatter!(hiatus_age_depth_curve, target_ages, target_heights_m, xerr = target_age_errors, yerr = target_height_errors_m, label = "correlated ages")
     scatter!(hiatus_thermal_subs_curve, target_ages, target_subs_heights, xerr = target_age_errors, yerr = target_subs_height_errors, label = "correlated ages")
-=#
+    =#
 
 ## --- End of File
