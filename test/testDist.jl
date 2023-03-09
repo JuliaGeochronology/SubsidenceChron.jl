@@ -50,7 +50,7 @@
     Y[1,:] .= 0
     for i = 2:10
         for j = i:10
-            decompact!(view(Y,:,i), y, ϕ₀[j], c[j], j, i)
+            SubsidenceChron.decompact!(view(Y,:,i), y, ϕ₀[j], c[j], j, i)
         end
     end
     Y_target = vcat(
