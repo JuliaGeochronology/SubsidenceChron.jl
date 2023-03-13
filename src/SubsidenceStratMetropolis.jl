@@ -87,6 +87,10 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
             c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
             ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
             ρg[i] = 2720
+        elseif lithology_inputs[i] == "Conglomerate"
+            c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
+            ρg[i] = 2720
         elseif lithology_inputs[i] == "Breccia"
             c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
             ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
@@ -303,6 +307,10 @@ function DecompactBackstrip(strat::StratData, nsims, res)
             ϕ₀_dist[i] = truncated(Normal(0.275, 0.1), 0, 1)
             ρg[i] = 2510
         elseif lithology_inputs[i] == "Diamictite"
+            c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
+            ρg[i] = 2720
+        elseif lithology_inputs[i] == "Conglomerate"
             c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
             ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
             ρg[i] = 2720
