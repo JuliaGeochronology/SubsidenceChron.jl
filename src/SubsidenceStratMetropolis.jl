@@ -75,6 +75,34 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
             c_dist[i] = truncated(Normal(0.3, 0.1), 0, Inf)
             ϕ₀_dist[i] = truncated(Normal(0.2, 0.1), 0, 1)
             ρg[i] = 2650
+        elseif lithology_inputs[i] == "Diabase"
+            c_dist[i] = truncated(Normal(0.65, 0.1), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.285, 0.1), 0, 1)
+            ρg[i] = 2960
+        elseif lithology_inputs[i] == "Rhyolite"
+            c_dist[i] = truncated(Normal(0.65, 0.1), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.275, 0.1), 0, 1)
+            ρg[i] = 2510
+        elseif lithology_inputs[i] == "Diamictite"
+            c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
+            ρg[i] = 2720
+        elseif lithology_inputs[i] == "Conglomerate"
+            c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
+            ρg[i] = 2720
+        elseif lithology_inputs[i] == "Breccia"
+            c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
+            ρg[i] = 2720
+        elseif lithology_inputs[i] == "Basalt"
+            c_dist[i] = truncated(Normal(0.65, 0.1), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.05, 0.1), 0, 1)
+            ρg[i] = 2980
+        elseif lithology_inputs[i] == "Andesite"
+            c_dist[i] = truncated(Normal(0.65, 0.1), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.095, 0.1), 0, 1)
+            ρg[i] = 2650
         end
     end
 
@@ -269,6 +297,34 @@ function DecompactBackstrip(strat::StratData, nsims, res)
         elseif lithology_inputs[i] == "Quartzite"
             c_dist[i] = truncated(Normal(0.3, 0.1), 0, Inf)
             ϕ₀_dist[i] = truncated(Normal(0.2, 0.1), 0, 1)
+            ρg[i] = 2650
+         elseif lithology_inputs[i] == "Diabase"
+            c_dist[i] = truncated(Normal(0.65, 0.1), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.285, 0.1), 0, 1)
+            ρg[i] = 2960
+        elseif lithology_inputs[i] == "Rhyolite"
+            c_dist[i] = truncated(Normal(0.65, 0.1), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.275, 0.1), 0, 1)
+            ρg[i] = 2510
+        elseif lithology_inputs[i] == "Diamictite"
+            c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
+            ρg[i] = 2720
+        elseif lithology_inputs[i] == "Conglomerate"
+            c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
+            ρg[i] = 2720
+        elseif lithology_inputs[i] == "Breccia"
+            c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
+            ρg[i] = 2720
+        elseif lithology_inputs[i] == "Basalt"
+            c_dist[i] = truncated(Normal(0.65, 0.1), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.05, 0.1), 0, 1)
+            ρg[i] = 2980
+        elseif lithology_inputs[i] == "Andesite"
+            c_dist[i] = truncated(Normal(0.65, 0.1), 0, Inf)
+            ϕ₀_dist[i] = truncated(Normal(0.095, 0.1), 0, 1)
             ρg[i] = 2650
         end
     end
