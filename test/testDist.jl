@@ -85,9 +85,8 @@
         if isapprox(Sμ_test[i], Sμ_target[i], atol=3) == false
             final_bool = false
         end
-        return final_bool
+        return @test final_bool
     end
-    @test final_bool
 
 ## --- Test subsidence_ll function
 
