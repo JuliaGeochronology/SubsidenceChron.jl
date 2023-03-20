@@ -422,8 +422,10 @@ function DecompactBackstrip(strat::StratData, nsims, res)
 
         # Calculate summary statistics (mean and standard deviation)
         Sₜ = copy(Sₜ_km).*1000
-        Sμ = dropdims(nanmean(Sₜ, dims=2), dims=2)
-        Sσ = dropdims(nanstd(Sₜ, dims=2), dims=2)
+        # reverse!(Sₜ, dims=1)
+        # Sₜ .- Sₜ[findfirst(active), :]'
+        Sμ = nanmean(Sₜ, dim=2)
+        Sσ = nanstd(Sₜ, dim=2)
 
     return Sₜ, Sμ, Sσ, model_strat_heights
 end

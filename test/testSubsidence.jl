@@ -56,6 +56,45 @@ subs_ll_test = SubsidenceChron.subsidence_ll(E₀, τ, Sμ_test[1:end-1], Sσ_te
 @test isapprox(subs_ll_test, 0, atol=0.1)
 
 ## --- Test SubsidenceStratMetropolis function
+# Make an instance of a ChronAgeData object for nSamples
+nSamples = 6
+smpl = NewChronAgeData(nSamples)
+smpl.Name          = ("Sample 1", "Sample 2", "Sample 3", "Sample 4", "Sample 5", "Sample 6") # Et cetera
+smpl.Age          .= [ 220.075277,  328.1557961,  362.6342915,  388.6710551, 396.0014282, 398.351178]# Measured ages
+smpl.Age_sigma    .= [   1.0,    1.0,    1.0,    1.0,  1.0,  1.0] # Measured 1-σ uncertainties
+smpl.Height       .= [ -100,  -700, -1100, -1700,  -1900,  -1960] # Depths below surface should be negative
+smpl.Height_sigma .= fill(0.01, nSamples) # Usually assume little or no sample height uncertainty
+smpl.Age_Sidedness .= zeros(nSamples) # Sidedness (zeros by default: geochron constraints are two-sided). Use -1 for a maximum age and +1 for a minimum age, 0 for two-sided
+smpl.Age_Unit = "Ma" # Unit of measurement for ages
+smpl.Height_Unit = "m" 
 
+# Enter initial guesses for the beta factor and thermal subsidence onset age and their uncertainties
+Beta = 1.42
+Beta_sigma = 0.2
+T0 = 420
+T0_sigma = 50
+therm = NewThermalSubsidenceParameters()
+therm.Param = [Beta, T0]
+therm.Sigma = [Beta_sigma, T0_sigma]
+
+# Configure the stratigraphic Monte Carlo model
+config = NewStratAgeModelConfiguration()
+config.resolution = 20 # Same units as sample height. Smaller is slower!
+config.bounding = 0.5 # how far away do we place runaway bounds, as a fraction of total section height. Larger is slower.
+(bottom, top) = extrema(smpl.Height)
+npoints_approx = round(Int,length(bottom:config.resolution:top) * (1 + 2*config.bounding))
+config.nsteps = 30000 # Number of steps to run in distribution MCMC
+config.burnin = 20000*npoints_approx # Number to discard
+config.sieve = round(Int,npoints_approx) # Record one out of every nsieve steps
+
+@time (subsmdl_test, agedist_test, lldist_test, beta_t0dist_test, lldist_burnin_test) = SubsidenceStratMetropolis(smpl, config, therm, model_strat_heights_test[1:end-1], Sμ_test[1:end-1], Sσ_test[1:end-1], 0.05, 10)
+
+# Test that results match expectation, within some tolerance
+@test subsmdl_test.Age isa Vector{Float64}
+@test subsmdl_test.Beta isa Vector{Float64}
+@test subsmdl_test.T0 isa Vector{Float64}
+
+@test isapprox(only(subsmdl_test.Beta), 1.385317084366247, atol=0.15)
+@test isapprox(only(subsmdl_test.T0), 402.94742883910374, atol=20)
 
 
