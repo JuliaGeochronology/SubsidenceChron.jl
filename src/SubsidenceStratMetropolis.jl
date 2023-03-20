@@ -140,12 +140,12 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
         print("Decompaction and Backstripping: ", nsims, " steps\n")
         pgrs = Progress(nsims, desc="Decompaction and Backstripping...")
         pgrs_interval = ceil(Int,10)
-        
+
         for sim = 1:nsims
             # Randomly select c and ϕ₀ vectors from the distributions for each input layer
             c = rand.(c_dist)
             ϕ₀ = rand.(ϕ₀_dist)
-            
+
             # Propagate these selections to every model layers; all model layers from the same input layer get the same c and ϕ₀ values
             @inbounds for i = 1:nlayer_input
                 for j = 1:model_nlayer
@@ -175,7 +175,7 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
             wd_id_inputs = wd.DepthID
             wd_height_inputs = cumsum([0; wd.Thickness])
             wd_nlayer_input = length(wd.Thickness)
-            
+
             # Allocate matrix for paleo-water depth distributions (for all water depth input layers)
             paleo_wd_dist = Array{Distribution,1}(undef, wd_nlayer_input)
             # Define the water depth distributions for all input layers based on their water depth classifications
@@ -189,14 +189,14 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
                 elseif wd_id_inputs[i] == "BWB"
                     paleo_wd_dist[i] = Uniform(0.04,0.1)
                 end
-            end      
+            end
 
             # Randomly select paleo water depth value (from the distributions) for each input layer
             paleo_wd = rand.(paleo_wd_dist)
             # Allocate paleo_wd matrix for all modeled layers with a resolution = res
             paleo_wd_highres = Array{Float64,1}(undef, model_nlayer+1)
-            
-            # Setup this matrix - paleo water depth for the first (topmost) modeled layer should be the same as the paleo water depth for the first input layer 
+
+            # Setup this matrix - paleo water depth for the first (topmost) modeled layer should be the same as the paleo water depth for the first input layer
             paleo_wd_highres[1] = paleo_wd[1]
             # Propagate these selections to every model layers; all model layers from the same input layer get the same paleo water depth
             for i = 1:wd_nlayer_input
@@ -212,7 +212,7 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
             # j = layer number = i:layer_count b/c the ith column begins with y₁' of layer i
             @inbounds for i = 1:model_nlayer+1
                 for j = i:model_nlayer
-                    # Average porosity of all modeled layers 
+                    # Average porosity of all modeled layers
                     ϕ_avg[j-i+1,i] = (ϕ₀_highres[j]/c_highres[j])*(exp(-c_highres[j]*Y[j-i+1,i])-exp(-c_highres[j]*Y[j-i+2,i]))/(Y[j-i+2,i]-Y[j-i+1,i])
                     # Bulk density of all modeled layers
                     ρ_bulk[j-i+1,i] = ρw*ϕ_avg[j-i+1,i]+(1-ϕ_avg[j-i+1,i])*ρg_highres[j]
@@ -222,7 +222,7 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
             end
             # (Mass = 0 for the last column, which represents the moment right before the deposition of the bottommost layer)
             m_bulk[:,end] .= 0
-            
+
             # Backstripping calculations
             for i = 1:model_nlayer+1
                 # Bulk density of all the columns (aka bulk densities of the whole sediment column for all timesteps)
@@ -360,7 +360,7 @@ function DecompactBackstrip(strat::StratData, nsims, res)
         print("Decompaction and Backstripping: ", nsims, " steps\n")
         pgrs = Progress(nsims, desc="Decompaction and Backstripping...")
         pgrs_interval = ceil(Int,10)
-        
+
         for sim = 1:nsims
             # Randomly select c and ϕ₀ vectors from the distributions for each input layer
             c = rand.(c_dist)
@@ -433,13 +433,36 @@ end
 
 ## --- Part 2: Age-depth modelling
 
-# Define the function that calculates the ll of the thermal subsidence fit
+# Define the function that calculates the log likelihood of the thermal subsidence fit
 function subsidence_ll(E₀, τ, model_St, model_St_sigma, model_t, beta_t0)
-    # Calculate subsidence_model_heights given this unique smooth thermal subsidence model at each age in model_t
-    subsidence_model_heights = (E₀*beta_t0[1]/pi)*sin(pi/beta_t0[1]).*(1 .-exp.(-(beta_t0[2] .-model_t)./τ))
-    #-τ*log(1 .-((model_St*pi)/(E₀*beta_t0[1]*sin(pi/beta_t0[1])))) .+beta_t0[2]
-    # Turn that into a log likelihood using some age uncertainty of the curve
-    log_likelihood = normpdf_ll(model_St, model_St_sigma, subsidence_model_heights)
+    β, T₀ = beta_t0
+    ll = zero(float(eltype(model_St_sigma)))
+    @turbo for i ∈ eachindex(model_t)
+        # Calculate subsidence_model_heights given this unique smooth thermal subsidence model at each age in model_t
+        x = (E₀*β/pi)*sin(pi/β)*(1 -exp(-(T₀ -model_t[i])/τ))
+        mu = model_St[i]
+        sigma = model_St_sigma[i]
+        # Turn that into a log likelihood using some age uncertainty of the curve
+        ll -= (x-mu)*(x-mu) / (2*sigma*sigma)
+    end
+    return ll
+
+    return log_likelihood
+end
+# A version of subsidence_ll that only considers model horizons for which active=true
+function subsidence_ll(E₀, τ, model_St, model_St_sigma, model_t, beta_t0, active::AbstractVector{Bool})
+    β, T₀ = beta_t0
+    ll = ∅ = zero(float(eltype(model_St_sigma)))
+    @turbo for i ∈ eachindex(model_t)
+        # Calculate subsidence_model_heights given this unique smooth thermal subsidence model at each age in model_t
+        x = (E₀*β/pi)*sin(pi/β)*(1 -exp(-(T₀ -model_t[i])/τ))
+        mu = model_St[i]
+        sigma = model_St_sigma[i]
+        # Turn that into a log likelihood using some age uncertainty of the curve
+        ll -= ifelse(active[i], (x-mu)*(x-mu) / (2*sigma*sigma), ∅)
+    end
+    return ll
+
     return log_likelihood
 end
 
