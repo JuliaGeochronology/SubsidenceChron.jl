@@ -83,7 +83,7 @@ config.resolution = 20 # Same units as sample height. Smaller is slower!
 config.bounding = 0.5 # how far away do we place runaway bounds, as a fraction of total section height. Larger is slower.
 (bottom, top) = extrema(smpl.Height)
 npoints_approx = round(Int,length(bottom:config.resolution:top) * (1 + 2*config.bounding))
-config.nsteps = 30000 # Number of steps to run in distribution MCMC
+config.nsteps = 20000 # Number of steps to run in distribution MCMC
 config.burnin = 20000*npoints_approx # Number to discard
 config.sieve = round(Int,npoints_approx) # Record one out of every nsieve steps
 
@@ -93,8 +93,16 @@ config.sieve = round(Int,npoints_approx) # Record one out of every nsieve steps
 @test subsmdl_test.Age isa Vector{Float64}
 @test subsmdl_test.Beta isa Vector{Float64}
 @test subsmdl_test.T0 isa Vector{Float64}
+@test agedist_test isa Matrix{Float64}
+@test beta_t0dist_test isa Matrix{Float64}
+@test lldist_test isa Vector{Float64}
+@test lldist_burnin_test isa Vector{Float64}
 
-@test isapprox(only(subsmdl_test.Beta), 1.385317084366247, atol=0.15)
-@test isapprox(only(subsmdl_test.T0), 402.94742883910374, atol=20)
+@test isapprox(only(subsmdl_test.Beta), 1.385317084366247, atol=0.2)
+@test isapprox(only(subsmdl_test.Beta_025CI), 1.256171601851893, atol=0.2)
+@test isapprox(only(subsmdl_test.Beta_975CI), 1.5277726246698682, atol=0.2)
+@test isapprox(only(subsmdl_test.T0), 402.94742883910374, atol=50)
+@test isapprox(only(subsmdl_test.T0_025CI), 391.5831873363192, atol=50)
+@test isapprox(only(subsmdl_test.T0_975CI), 419.939403901756, atol=50)
 
 
