@@ -66,7 +66,7 @@ smpl.Height       .= [ -100,  -700, -1100, -1700,  -1900,  -1960] # Depths below
 smpl.Height_sigma .= fill(0.01, nSamples) # Usually assume little or no sample height uncertainty
 smpl.Age_Sidedness .= zeros(nSamples) # Sidedness (zeros by default: geochron constraints are two-sided). Use -1 for a maximum age and +1 for a minimum age, 0 for two-sided
 smpl.Age_Unit = "Ma" # Unit of measurement for ages
-smpl.Height_Unit = "m" 
+smpl.Height_Unit = "m"
 
 # Enter initial guesses for the beta factor and thermal subsidence onset age and their uncertainties
 Beta = 1.42
@@ -98,11 +98,12 @@ config.sieve = round(Int,npoints_approx) # Record one out of every nsieve steps
 @test lldist_test isa Vector{Float64}
 @test lldist_burnin_test isa Vector{Float64}
 
+# Test that all age-depth models are in stratigraphic order
+@test all([issorted(x, rev=true) for x in eachcol(agedist_test)])
+
 @test isapprox(only(subsmdl_test.Beta), 1.385317084366247, atol=0.2)
 @test isapprox(only(subsmdl_test.Beta_025CI), 1.256171601851893, atol=0.2)
 @test isapprox(only(subsmdl_test.Beta_975CI), 1.5277726246698682, atol=0.2)
 @test isapprox(only(subsmdl_test.T0), 402.94742883910374, atol=50)
 @test isapprox(only(subsmdl_test.T0_025CI), 391.5831873363192, atol=50)
 @test isapprox(only(subsmdl_test.T0_975CI), 419.939403901756, atol=50)
-
-
