@@ -1,46 +1,15 @@
-## --- Stratigraphic MCMC model without hiatus # # # # # # # # # # # # # # # # #
+## --- Subsidence parameters
 
-
-# Part 1: Decompaction and Backstripping
-
-# Define the decompaction function
-function decompact!(yₚ, y, ϕ₀, c, n, m; niterations = 10)
-    # y[n+1] = y₂ = present-day depth for base of layer n
-    # y[n] = y₁ = present-day depth for top of layer n
-    δy = y[n+1] - y[n]
-    # yₚ[n-m+2] = y₂' = depth for base of layer n during decompaction (at t=tₘ)
-    # yₚ[n-m+1] = y₁' = depth for top of layer n during decompaction (at t=tₘ)
-    yₚ[n-m+2] = yₚ[n-m+1] + δy
-    # In this for loop, the initial approximatation for the thickness of a given layer is the present-day thickness of that layer (calculated above)
-    # The true thickness is then reached by running the decompaction equation multiple times (niterations)
-    e₁ = exp(-c*yₚ[n-m+1])
-    e₃₄ = exp(-c*y[n]) - exp(-c*y[n+1])
-    @inbounds for idx=1:niterations
-        # yₚ[n-m+2] = yₚ[n-m+1] + δy + ϕ₀/c * ((exp(-c*yₚ[n-m+1]) - exp(-c*yₚ[n-m+2])) - (exp(-c*y[n]) - exp(-c*y[n+1])))
-        yₚ[n-m+2] = yₚ[n-m+1] + δy + ϕ₀/c * ((e₁ - exp(-c*yₚ[n-m+2])) - e₃₄)
-    end
-end
-
-# Decompaction and backstripping (Method 1: with water depth inputs)
-function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
-
-    # Import data from csv and assign parameters for each lithology
-        lithology_inputs = strat.Lithology
-        height_inputs = cumsum([0; strat.Thickness])
-        nlayer_input = length(strat.Thickness)
-        model_strat_heights = [0:res:maximum(height_inputs);]
-        model_nlayer = length(model_strat_heights)-1
-
-    # Allocate parameters as distributions; each element/distribution represents a layer
-        # porosity depth coefficient(c)
-        c_dist = Array{Distribution,1}(undef, nlayer_input)
-        # surface porosity (ϕ₀)
-        ϕ₀_dist = Array{Distribution,1}(undef, nlayer_input)
-        # sediment grain density (ρg)
-        ρg = Array{Float64,1}(undef, nlayer_input)
+function subsidenceparams(lithology_inputs)
+    # porosity depth coefficient(c)
+    c_dist = similar(lithology_inputs, Distribution)
+    # surface porosity (ϕ₀)
+    ϕ₀_dist = similar(lithology_inputs, Distribution)
+    # sediment grain density (ρg)
+    ρg = similar(lithology_inputs, Float64)
 
     # Find the correct c, ϕ₀, and ρg for each layer based on lithology
-    for i = 1:nlayer_input
+    for i in eachindex(lithology_inputs)
         if lithology_inputs[i] == "Shale"
             # c has a lower bound of 0 b/c porosity at depth should not be greater than porosity at surface
             c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
@@ -75,7 +44,7 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
             c_dist[i] = truncated(Normal(0.3, 0.1), 0, Inf)
             ϕ₀_dist[i] = truncated(Normal(0.2, 0.1), 0, 1)
             ρg[i] = 2650
-        elseif lithology_inputs[i] == "Diabase"
+         elseif lithology_inputs[i] == "Diabase"
             c_dist[i] = truncated(Normal(0.65, 0.1), 0, Inf)
             ϕ₀_dist[i] = truncated(Normal(0.285, 0.1), 0, 1)
             ρg[i] = 2960
@@ -105,6 +74,45 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
             ρg[i] = 2650
         end
     end
+    return c_dist, ϕ₀_dist, ρg
+end
+
+## --- Stratigraphic MCMC model without hiatus # # # # # # # # # # # # # # # # #
+
+
+# Part 1: Decompaction and Backstripping
+
+# Define the decompaction function
+function decompact!(yₚ, y, ϕ₀, c, n, m; niterations = 10)
+    # y[n+1] = y₂ = present-day depth for base of layer n
+    # y[n] = y₁ = present-day depth for top of layer n
+    δy = y[n+1] - y[n]
+    # yₚ[n-m+2] = y₂' = depth for base of layer n during decompaction (at t=tₘ)
+    # yₚ[n-m+1] = y₁' = depth for top of layer n during decompaction (at t=tₘ)
+    yₚ[n-m+2] = yₚ[n-m+1] + δy
+    # In this for loop, the initial approximatation for the thickness of a given layer is the present-day thickness of that layer (calculated above)
+    # The true thickness is then reached by running the decompaction equation multiple times (niterations)
+    e₁ = exp(-c*yₚ[n-m+1])
+    e₃₄ = exp(-c*y[n]) - exp(-c*y[n+1])
+    @inbounds for idx=1:niterations
+        # yₚ[n-m+2] = yₚ[n-m+1] + δy + ϕ₀/c * ((exp(-c*yₚ[n-m+1]) - exp(-c*yₚ[n-m+2])) - (exp(-c*y[n]) - exp(-c*y[n+1])))
+        yₚ[n-m+2] = yₚ[n-m+1] + δy + ϕ₀/c * ((e₁ - exp(-c*yₚ[n-m+2])) - e₃₄)
+    end
+end
+
+# Decompaction and backstripping (Method 1: with water depth inputs)
+function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
+
+    # Import data from csv and assign parameters for each lithology
+        lithology_inputs = strat.Lithology
+        height_inputs = cumsum([0; strat.Thickness])
+        nlayer_input = length(strat.Thickness)
+        model_strat_heights = [0:res:maximum(height_inputs);]
+        model_nlayer = length(model_strat_heights)-1
+
+    # Allocate parameters as distributions; each element/distribution represents a layer
+        # c: porosity depth coefficient, ϕ₀: surface porosity, ρg: sediment grain density
+        c_dist, ϕ₀_dist, ρg = subsidenceparams(lithology_inputs)
 
     # Prep for decompaction and backstripping MC
         # Define parameters for decompaction (number of simulations; water and mantle densities)
@@ -255,79 +263,8 @@ function DecompactBackstrip(strat::StratData, nsims, res)
         model_nlayer = length(model_strat_heights)-1
 
     # Allocate parameters as distributions; each element/distribution represents a layer
-        # porosity depth coefficient(c)
-        c_dist = Array{Distribution,1}(undef, nlayer_input)
-        # surface porosity (ϕ₀)
-        ϕ₀_dist = Array{Distribution,1}(undef, nlayer_input)
-        # sediment grain density (ρg)
-        ρg = Array{Float64,1}(undef, nlayer_input)
-
-    # Find the correct c, ϕ₀, and ρg for each layer based on lithology
-    for i = 1:nlayer_input
-        if lithology_inputs[i] == "Shale"
-            # c has a lower bound of 0 b/c porosity at depth should not be greater than porosity at surface
-            c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
-            # ϕ₀ has a lower bound of 0 and an upper bound of 1 b/c of the definition of porosity
-            ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
-            ρg[i] = 2720
-        elseif lithology_inputs[i] == "Siltstone"
-            c_dist[i] = truncated(Normal(0.39, 0.1), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.56, 0.1), 0, 1)
-            ρg[i] = 2640 # Might need to update this number
-        elseif lithology_inputs[i] == "Sandstone"
-            c_dist[i] = truncated(Normal(0.27, 0.1), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.49, 0.1), 0, 1)
-            ρg[i] = 2650
-        elseif lithology_inputs[i] == "Chalk"
-            c_dist[i] = truncated(Normal(0.71, 0.15), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.7, 0.15), 0, 1)
-            ρg[i] = 2710
-        elseif lithology_inputs[i] == "Limestone"
-            c_dist[i] = truncated(Normal(0.6, 0.2), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.4, 0.17), 0, 1)
-            ρg[i] = 2710
-        elseif lithology_inputs[i] == "Dolostone"
-            c_dist[i] = truncated(Normal(0.6, 0.2), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.2, 0.1), 0, 1)
-            ρg[i] = 2870
-        elseif lithology_inputs[i] == "Anhydrite"
-            c_dist[i] = truncated(Normal(0.2, 0.1), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.05, 0.05), 0, 1)
-            ρg[i] = 2960
-        elseif lithology_inputs[i] == "Quartzite"
-            c_dist[i] = truncated(Normal(0.3, 0.1), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.2, 0.1), 0, 1)
-            ρg[i] = 2650
-         elseif lithology_inputs[i] == "Diabase"
-            c_dist[i] = truncated(Normal(0.65, 0.1), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.285, 0.1), 0, 1)
-            ρg[i] = 2960
-        elseif lithology_inputs[i] == "Rhyolite"
-            c_dist[i] = truncated(Normal(0.65, 0.1), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.275, 0.1), 0, 1)
-            ρg[i] = 2510
-        elseif lithology_inputs[i] == "Diamictite"
-            c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
-            ρg[i] = 2720
-        elseif lithology_inputs[i] == "Conglomerate"
-            c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
-            ρg[i] = 2720
-        elseif lithology_inputs[i] == "Breccia"
-            c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
-            ρg[i] = 2720
-        elseif lithology_inputs[i] == "Basalt"
-            c_dist[i] = truncated(Normal(0.65, 0.1), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.05, 0.1), 0, 1)
-            ρg[i] = 2980
-        elseif lithology_inputs[i] == "Andesite"
-            c_dist[i] = truncated(Normal(0.65, 0.1), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.095, 0.1), 0, 1)
-            ρg[i] = 2650
-        end
-    end
+        # c: porosity depth coefficient, ϕ₀: surface porosity, ρg: sediment grain density
+        c_dist, ϕ₀_dist, ρg = subsidenceparams(lithology_inputs)
 
     # Prep for decompaction and backstripping MC
         # Define parameters for decompaction (number of simulations; water and mantle densities)
