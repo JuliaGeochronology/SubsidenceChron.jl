@@ -18,4 +18,4 @@
 [ci-nightly-img]:https://github.com/JuliaGeochronology/SubsidenceChron.jl/workflows/CI%20(Julia%20nightly)/badge.svg
 [ci-nightly-url]:https://github.com/JuliaGeochronology/SubsidenceChron.jl/actions/workflows/CI-julia-nightly.yml
 [codecov-img]: http://codecov.io/github/JuliaGeochronology/SubsidenceChron.jl/coverage.svg?branch=main
-[codecov-url]: http://codecov.io/github/JuliaGeochronology/SubsidenceChron.jl?branch=main
+[codecov-url]: http://app.codecov.io/github/JuliaGeochronology/SubsidenceChron.jl?branch=main
