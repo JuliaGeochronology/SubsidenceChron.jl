@@ -1,84 +1,92 @@
 ## --- Subsidence parameters
 
-function subsidenceparams(lithology_inputs)
+function subsidenceparams(lithology::AbstractString)
+    if lithology == "Shale"
+        # c has a lower bound of 0 b/c porosity at depth should not be greater than porosity at surface
+        c_dist = truncated(Normal(0.51, 0.15), 0, Inf)
+        # ϕ₀ has a lower bound of 0 and an upper bound of 1 b/c of the definition of porosity
+        ϕ₀_dist = truncated(Normal(0.63, 0.15), 0, 1)
+        ρg = 2720
+    elseif lithology == "Siltstone"
+        c_dist = truncated(Normal(0.39, 0.1), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.56, 0.1), 0, 1)
+        ρg = 2640 # Might need to update this number
+    elseif lithology == "Sandstone"
+        c_dist = truncated(Normal(0.27, 0.1), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.49, 0.1), 0, 1)
+        ρg = 2650
+    elseif lithology == "Chalk"
+        c_dist = truncated(Normal(0.71, 0.15), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.7, 0.15), 0, 1)
+        ρg = 2710
+    elseif lithology == "Limestone"
+        c_dist = truncated(Normal(0.6, 0.2), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.4, 0.17), 0, 1)
+        ρg = 2710
+    elseif lithology == "Dolostone"
+        c_dist = truncated(Normal(0.6, 0.2), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.2, 0.1), 0, 1)
+        ρg = 2870
+    elseif lithology == "Anhydrite"
+        c_dist = truncated(Normal(0.2, 0.1), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.05, 0.05), 0, 1)
+        ρg = 2960
+    elseif lithology == "Quartzite"
+        c_dist = truncated(Normal(0.3, 0.1), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.2, 0.1), 0, 1)
+        ρg = 2650
+     elseif lithology == "Diabase"
+        c_dist = truncated(Normal(0.65, 0.1), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.285, 0.1), 0, 1)
+        ρg = 2960
+    elseif lithology == "Rhyolite"
+        c_dist = truncated(Normal(0.65, 0.1), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.275, 0.1), 0, 1)
+        ρg = 2510
+    elseif lithology == "Diamictite"
+        c_dist = truncated(Normal(0.51, 0.15), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.63, 0.15), 0, 1)
+        ρg = 2720
+    elseif lithology == "Conglomerate"
+        c_dist = truncated(Normal(0.51, 0.15), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.63, 0.15), 0, 1)
+        ρg = 2720
+    elseif lithology == "Breccia"
+        c_dist = truncated(Normal(0.51, 0.15), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.63, 0.15), 0, 1)
+        ρg = 2720
+    elseif lithology == "Basalt"
+        c_dist = truncated(Normal(0.65, 0.1), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.05, 0.1), 0, 1)
+        ρg = 2980
+    elseif lithology == "Andesite"
+        c_dist = truncated(Normal(0.65, 0.1), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.095, 0.1), 0, 1)
+        ρg = 2650
+    else # fallback, if unknown
+        @warn "lithology $lithology not recognized, using default porosity parameters"
+        c_dist = truncated(Normal(0.5, 0.3), 0, Inf)
+        ϕ₀_dist = Uniform(0, 1)
+        ρg = 2700
+    end
+    return c_dist, ϕ₀_dist, ρg
+end
+function subsidenceparams(lithology::Vector{<:AbstractString})
     # porosity depth coefficient(c)
-    c_dist = similar(lithology_inputs, Distribution)
+    c_dist = similar(lithology, Distribution)
     # surface porosity (ϕ₀)
-    ϕ₀_dist = similar(lithology_inputs, Distribution)
+    ϕ₀_dist = similar(lithology, Distribution)
     # sediment grain density (ρg)
-    ρg = similar(lithology_inputs, Float64)
+    ρg = similar(lithology, Float64)
 
     # Find the correct c, ϕ₀, and ρg for each layer based on lithology
-    for i in eachindex(lithology_inputs)
-        if lithology_inputs[i] == "Shale"
-            # c has a lower bound of 0 b/c porosity at depth should not be greater than porosity at surface
-            c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
-            # ϕ₀ has a lower bound of 0 and an upper bound of 1 b/c of the definition of porosity
-            ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
-            ρg[i] = 2720
-        elseif lithology_inputs[i] == "Siltstone"
-            c_dist[i] = truncated(Normal(0.39, 0.1), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.56, 0.1), 0, 1)
-            ρg[i] = 2640 # Might need to update this number
-        elseif lithology_inputs[i] == "Sandstone"
-            c_dist[i] = truncated(Normal(0.27, 0.1), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.49, 0.1), 0, 1)
-            ρg[i] = 2650
-        elseif lithology_inputs[i] == "Chalk"
-            c_dist[i] = truncated(Normal(0.71, 0.15), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.7, 0.15), 0, 1)
-            ρg[i] = 2710
-        elseif lithology_inputs[i] == "Limestone"
-            c_dist[i] = truncated(Normal(0.6, 0.2), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.4, 0.17), 0, 1)
-            ρg[i] = 2710
-        elseif lithology_inputs[i] == "Dolostone"
-            c_dist[i] = truncated(Normal(0.6, 0.2), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.2, 0.1), 0, 1)
-            ρg[i] = 2870
-        elseif lithology_inputs[i] == "Anhydrite"
-            c_dist[i] = truncated(Normal(0.2, 0.1), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.05, 0.05), 0, 1)
-            ρg[i] = 2960
-        elseif lithology_inputs[i] == "Quartzite"
-            c_dist[i] = truncated(Normal(0.3, 0.1), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.2, 0.1), 0, 1)
-            ρg[i] = 2650
-         elseif lithology_inputs[i] == "Diabase"
-            c_dist[i] = truncated(Normal(0.65, 0.1), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.285, 0.1), 0, 1)
-            ρg[i] = 2960
-        elseif lithology_inputs[i] == "Rhyolite"
-            c_dist[i] = truncated(Normal(0.65, 0.1), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.275, 0.1), 0, 1)
-            ρg[i] = 2510
-        elseif lithology_inputs[i] == "Diamictite"
-            c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
-            ρg[i] = 2720
-        elseif lithology_inputs[i] == "Conglomerate"
-            c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
-            ρg[i] = 2720
-        elseif lithology_inputs[i] == "Breccia"
-            c_dist[i] = truncated(Normal(0.51, 0.15), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.63, 0.15), 0, 1)
-            ρg[i] = 2720
-        elseif lithology_inputs[i] == "Basalt"
-            c_dist[i] = truncated(Normal(0.65, 0.1), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.05, 0.1), 0, 1)
-            ρg[i] = 2980
-        elseif lithology_inputs[i] == "Andesite"
-            c_dist[i] = truncated(Normal(0.65, 0.1), 0, Inf)
-            ϕ₀_dist[i] = truncated(Normal(0.095, 0.1), 0, 1)
-            ρg[i] = 2650
-        end
+    for i in eachindex(lithology)
+        c_dist[i], ϕ₀_dist[i], ρg[i] = subsidenceparams(lithology[i])
     end
     return c_dist, ϕ₀_dist, ρg
 end
 
-## --- Stratigraphic MCMC model without hiatus # # # # # # # # # # # # # # # # #
-
+## --- Stratigraphic MCMC model without hiata # # # # # # # # # # # # # # # # #
 
 # Part 1: Decompaction and Backstripping
 
