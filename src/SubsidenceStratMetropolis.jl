@@ -156,11 +156,13 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
         print("Decompaction and Backstripping: ", nsims, " steps\n")
         pgrs = Progress(nsims, desc="Decompaction and Backstripping...")
         pgrs_interval = ceil(Int,10)
+        c = rand.(c_dist)
+        ϕ₀ = rand.(ϕ₀_dist)
 
         for sim = 1:nsims
             # Randomly select c and ϕ₀ vectors from the distributions for each input layer
-            c = rand.(c_dist)
-            ϕ₀ = rand.(ϕ₀_dist)
+            @. c = rand(c_dist)
+            @. ϕ₀ = rand(ϕ₀_dist)
 
             # Propagate these selections to every model layers; all model layers from the same input layer get the same c and ϕ₀ values
             @inbounds for i = 1:nlayer_input
@@ -240,12 +242,12 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
             m_bulk[:,end] .= 0
 
             # Backstripping calculations
-            for i = 1:model_nlayer+1
+            @inbounds for i = 1:model_nlayer+1
                 # Bulk density of all the columns (aka bulk densities of the whole sediment column for all timesteps)
                 # maximum([:,i]) = total depth of column at time step i
-                ρ_bulk_column[i] = sum(m_bulk[:,i])/maximum(Y[:,i])
+                ρ_bulk_column[i] = sum(view(m_bulk,:,i))/maximum(view(Y,:,i))
                 # Tectonic subsidence for all timesteps; record results from all simulations
-                Sₜ_km[i,sim] = copy(Y[model_nlayer+2-i,i])*((ρm-ρ_bulk_column[i])/(ρm-ρw)).+paleo_wd_highres[i]
+                Sₜ_km[i,sim] = Y[model_nlayer+2-i,i]*((ρm-ρ_bulk_column[i])/(ρm-ρw)).+paleo_wd_highres[i]
             end
 
             mod(sim,pgrs_interval)==0 && update!(pgrs, sim)
@@ -253,9 +255,9 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
         update!(pgrs,nsims)
 
         # Calculate summary statistics (mean and standard deviation)
-        Sₜ = copy(Sₜ_km).*1000
-        Sμ = dropdims(nanmean(Sₜ, dims=2), dims=2)
-        Sσ = dropdims(nanstd(Sₜ, dims=2), dims=2)
+        Sₜ = Sₜ_km .* 1000
+        Sμ = nanmean(Sₜ, dim=2)
+        Sσ = nanstd(Sₜ, dim=2)
 
     return Sₜ, Sμ, Sσ, model_strat_heights, paleo_wd_dist
 end
@@ -305,11 +307,13 @@ function DecompactBackstrip(strat::StratData, nsims, res)
         print("Decompaction and Backstripping: ", nsims, " steps\n")
         pgrs = Progress(nsims, desc="Decompaction and Backstripping...")
         pgrs_interval = ceil(Int,10)
+        c = rand.(c_dist)
+        ϕ₀ = rand.(ϕ₀_dist)
 
         for sim = 1:nsims
             # Randomly select c and ϕ₀ vectors from the distributions for each input layer
-            c = rand.(c_dist)
-            ϕ₀ = rand.(ϕ₀_dist)
+            @. c = rand(c_dist)
+            @. ϕ₀ = rand(ϕ₀_dist)
 
             # Propagate these selections to every model layers; all model layers from the same input layer get the same c and ϕ₀ values
             @inbounds for i = 1:nlayer_input
@@ -356,9 +360,9 @@ function DecompactBackstrip(strat::StratData, nsims, res)
             for i = 1:model_nlayer+1
                 # Bulk density of all the columns (aka bulk densities of the whole sediment column for all timesteps)
                 # maximum(Y_corr[:,i]) = total depth of column at time step i
-                ρ_bulk_column[i] = sum(m_bulk[:,i])/maximum(Y[:,i])
+                ρ_bulk_column[i] = sum(view(m_bulk,:,i))/maximum(view(Y,:,i))
                 # Tectonic subsidence for all timesteps; record results from all simulations
-                Sₜ_km[i,sim] = copy(Y[model_nlayer+2-i,i])*((ρm-ρ_bulk_column[i])/(ρm-ρw))
+                Sₜ_km[i,sim] = Y[model_nlayer+2-i,i]*((ρm-ρ_bulk_column[i])/(ρm-ρw))
             end
 
             mod(sim,pgrs_interval)==0 && update!(pgrs, sim)
@@ -366,7 +370,7 @@ function DecompactBackstrip(strat::StratData, nsims, res)
         update!(pgrs,nsims)
 
         # Calculate summary statistics (mean and standard deviation)
-        Sₜ = copy(Sₜ_km).*1000
+        Sₜ = Sₜ_km .* 1000
         # reverse!(Sₜ, dims=1)
         # Sₜ .- Sₜ[findfirst(active), :]'
         Sμ = nanmean(Sₜ, dim=2)
