@@ -1,9 +1,8 @@
 ## For subsidence modeling in extensional basins
-
 ## --- Load required pacages, install SubsidenceChron if required
 
     using SubsidenceChron
-    using StatGeochem, Distributions, Plots, Statistics, StatsBase
+    using StatGeochem, Distributions, Plots
 
 ## --- Part 1: Decompaction and Backstripping
 
@@ -18,23 +17,23 @@
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
-    # # # # # # # # OPTIONAL - Enter paleo water depth information here! # # # # # # # # 
+    # # # # # # # # OPTIONAL - Enter paleo water depth information here! # # # # # # # #
     # Import the data file (.csv)
     wd_csv = importdataset("examples/Svalbard_SequenceStrat.csv", ',')
     # Obtain paleo water depth info from the data file
     wd_nLayers = length(wd_csv["Thickness"])
     wd = NewWaterDepth(wd_nLayers)
     wd.DepthID    = wd_csv["Type"]
-    wd.Thickness .= wd_csv["Thickness"] 
+    wd.Thickness .= wd_csv["Thickness"]
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
     # # # # # # # # # # Configure MC model here! # # # # # # # # # #
     # Number of MCMC simulations
-    nsims = 5000 #5000
+    nsims = 5000
     # Resolution for model horizons (in km)
     res = 0.001
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     # Run the decompaction and backstripping MC model
     # (wd input is optional)
@@ -52,7 +51,7 @@
     Sμ = readdlm("St_mu_highres_5000sims.csv", ',', Float64)
     Sσ = readdlm("St_sigma_highres_5000sims.csv", ',', Float64)
     =#
-    
+
     # Plot results - tectonic subsidence in comparison with present day stratigraphic heights
     p1 = plot(Sμ, alpha = 1, yflip = true, xflip = true, label = "Tectonic subsidence", color = "blue")
     plot!(p1, reverse((model_strat_heights)*1000), yflip = true, label = "Present-day thickness", color = "red")
@@ -60,7 +59,7 @@
     savefig(p1, "Fig7a_DecompactBackstrip_higherres.pdf")
 
 
-## --- Part 2a: Age-depth modeling 
+## --- Part 2a: Age-depth modeling
 
     # # # # # # # # # # # Enter age constraint (sample) information here! # # # # # # # # # # # #
     # Input the number of samples we wish to model (must match below)
@@ -146,7 +145,7 @@
         post_beta = histogram(beta_t0dist[1,:], color="black", linecolor=nothing, alpha = 0.5, nbins=50)
         vline!([subsmdl.Beta_Median], linecolor = "black", linestyle=:dot, linewidth = 3)
         savefig(post_beta, "Svalbard_PosteriorBeta.pdf")
-        
+
         # Plot 3: Posterior distributions of t₀
         post_t0 = histogram(beta_t0dist[2,:], color="black", linecolor=nothing, alpha = 0.5, nbins=50)
         vline!([subsmdl.T0_Median], linecolor = "black", linestyle=:dot, linewidth = 3)
@@ -178,7 +177,7 @@
         plot!(age_interp, xlabel="Age ($(smpl.Age_Unit)) for the onset of Bitter Springs CIE", ylabel="Likelihood (unnormalized)")
         savefig(age_interp, "Svalbard_InterpolatedAge_BSA_Onset.pdf")
         display(age_interp)
-    
+
 
         #=
         # Plot 4 alternative ----
@@ -229,7 +228,7 @@
         vline!([nanmedian(predicted_ages, dims=2)[1]], linecolor = "black", linestyle=:dot, linewidth = 3)
         savefig(predicted1, "Svalbard_BetaT0PredictedAge1.pdf")
         =#
-    
+
 
         #= Code for test plots
         # Test Plot 1: see if younger strata can be accommodated by this one rifting event
