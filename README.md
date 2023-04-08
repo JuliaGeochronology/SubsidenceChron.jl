@@ -1,4 +1,5 @@
 # SubsidenceChron.jl
+[![DOI](docs/osf_io_ZW5GA.svg)](https://doi.org/10.17605/OSF.IO/ZW5GA)
 [![Docs][docs-dev-img]][docs-dev-url]
 [![CI][ci-img]][ci-url]
 [![CI (julia nightly)][ci-nightly-img]][ci-nightly-url]
