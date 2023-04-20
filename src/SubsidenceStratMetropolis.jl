@@ -241,7 +241,7 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
         Sμ = dropdims(nanmean(Sₜ, dims=2), dims=2)
         Sσ = dropdims(nanstd(Sₜ, dims=2), dims=2)
 
-    return Sₜ, Sμ, Sσ, model_strat_heights, paleo_wd_dist
+    return Sₜ, Sμ, Sσ, model_strat_heights
 end
 
 # Decompaction and backstripping (Method 2: without water depth inputs)
