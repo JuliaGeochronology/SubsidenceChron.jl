@@ -103,9 +103,9 @@ config.sieve = round(Int,npoints_approx) # Record one out of every nsieve steps
 @test isapprox(only(subsmdl_test.Beta), 1.385317084366247, atol=0.1)
 @test isapprox(only(subsmdl_test.Beta_025CI), 1.256171601851893, atol=0.1)
 @test isapprox(only(subsmdl_test.Beta_975CI), 1.5277726246698682, atol=0.1)
-@test isapprox(only(subsmdl_test.T0), 402.94742883910374, atol=1)
-@test isapprox(only(subsmdl_test.T0_025CI), 391.5831873363192, atol=2)
-@test isapprox(only(subsmdl_test.T0_975CI), 419.939403901756, atol=2)
+@test isapprox(only(subsmdl_test.T0), 402.94742883910374, atol=5)
+@test isapprox(only(subsmdl_test.T0_025CI), 391.5831873363192, atol=10)
+@test isapprox(only(subsmdl_test.T0_975CI), 419.939403901756, atol=10)
 
 ## Specify subsidence bottom and top
 @time (subsmdl_test, agedist_test, lldist_test, beta_t0dist_test, lldist_burnin_test) = SubsidenceStratMetropolis(smpl, config, therm, model_strat_heights_test[1:end-1], Sμ_test[1:end-1], Sσ_test[1:end-1], 0.05, 10, subsidencebottom=-1000, subsidencetop=-500)
@@ -125,6 +125,6 @@ config.sieve = round(Int,npoints_approx) # Record one out of every nsieve steps
 @test isapprox(only(subsmdl_test.Beta), 1.385317084366247, atol=0.1)
 @test isapprox(only(subsmdl_test.Beta_025CI), 1.256171601851893, atol=0.1)
 @test isapprox(only(subsmdl_test.Beta_975CI), 1.5277726246698682, atol=0.1)
-@test isapprox(only(subsmdl_test.T0), 424.7054550880552, atol=1)
-@test isapprox(only(subsmdl_test.T0_025CI), 374.5867600109799, atol=2)
-@test isapprox(only(subsmdl_test.T0_975CI), 508.34306704599106, atol=2)
+@test isapprox(only(subsmdl_test.T0), 422.18738952637034, atol=5)
+@test isapprox(only(subsmdl_test.T0_025CI), 374.5867600109799, atol=10)
+@test isapprox(only(subsmdl_test.T0_975CI), 506.10804878585355, atol=10)

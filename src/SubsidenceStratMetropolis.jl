@@ -384,6 +384,7 @@ end
 
 # Define the function that calculates the log likelihood of the thermal subsidence fit
 function subsidence_ll(E₀, τ, model_St, model_St_sigma, model_t, beta_t0)
+    @assert eachindex(model_St) == eachindex(model_St_sigma) == eachindex(model_t)
     β, T₀ = beta_t0
     ll = zero(float(eltype(model_St_sigma)))
     @turbo for i ∈ eachindex(model_t)
@@ -393,22 +394,6 @@ function subsidence_ll(E₀, τ, model_St, model_St_sigma, model_t, beta_t0)
         sigma = model_St_sigma[i]
         # Turn that into a log likelihood using some age uncertainty of the curve
         ll -= (x-mu)*(x-mu) / (2*sigma*sigma)
-    end
-    return ll
-
-    return log_likelihood
-end
-# A version of subsidence_ll that only considers model horizons for which active=true
-function subsidence_ll(E₀, τ, model_St, model_St_sigma, model_t, beta_t0, active::AbstractVector{Bool})
-    β, T₀ = beta_t0
-    ll = ∅ = zero(float(eltype(model_St_sigma)))
-    @turbo for i ∈ eachindex(model_t)
-        # Calculate subsidence_model_heights given this unique smooth thermal subsidence model at each age in model_t
-        x = (E₀*β/pi)*sin(pi/β)*(1 -exp(-(T₀ -model_t[i])/τ))
-        mu = model_St[i]
-        sigma = model_St_sigma[i]
-        # Turn that into a log likelihood using some age uncertainty of the curve
-        ll -= ifelse(active[i], (x-mu)*(x-mu) / (2*sigma*sigma), ∅)
     end
     return ll
 
@@ -456,7 +441,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         if bounding>0
             # If bounding is requested, add extrapolated top and bottom bounds to avoid
             # issues with the stratigraphic markov chain wandering off to +/- infinity
-            offset = round((top-bottom)*bounding)
+            offset = round((top-bottom)*bounding/resolution)*resolution
             Age = [oldest + offset*dt_dH; Age; youngest - offset*dt_dH]
             Age_sigma = [nanmean(Age_sigma)/10; Age_sigma; nanmean(Age_sigma)/10]
             Height = [bottom-offset; Height; top+offset]
@@ -510,12 +495,12 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         ll += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parameters)
 
     # STEP 3: calculate log likelihood for the fit of the thermal subsidence curve in the initial proposal
-        ts_model_ages = reverse(model_ages[active_height_t])
-        model_heights_input = copy(-model_strat_heights).*1000
         subsidence_height_t = subsidencebottom .<= model_heights .<= subsidencetop
-        ts_Sμ = Sμ[subsidencebottom .<= model_heights_input .<= subsidencetop]
-        ts_Sσ = Sσ[subsidencebottom .<= model_heights_input .<= subsidencetop]
-        ll += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_ages, subs_parameters)/(length(ts_Sμ))
+        ts_model_ages = reverse(model_ages[subsidence_height_t])
+        input_subsidence_t = subsidencebottom .<= (-model_strat_heights*1000) .<= subsidencetop
+        ts_Sμ = Sμ[input_subsidence_t]
+        ts_Sσ = Sσ[input_subsidence_t]
+        ll += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_ages, subs_parameters)/length(ts_Sμ)
 
     # Preallocate variables for MCMC proposals
         llₚ = ll
@@ -588,7 +573,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
             ts_model_agesₚ = reverse(model_agesₚ[subsidence_height_t])
-            llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)/(length(ts_Sμ))
+            llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)/length(ts_Sμ)
 
             # Accept or reject proposal based on likelihood
             if log(rand(Float64)) < (llₚ - ll)
@@ -673,7 +658,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
             ts_model_agesₚ = reverse(model_agesₚ[subsidence_height_t])
-            llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)/(length(ts_Sμ))
+            llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)/length(ts_Sμ)
 
             # Accept or reject proposal based on likelihood
             if log(rand(Float64)) < (llₚ - ll)
