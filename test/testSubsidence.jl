@@ -59,7 +59,7 @@ subs_ll_test = SubsidenceChron.subsidence_ll(E₀, τ, Sμ_test[1:end-1], Sσ_te
 nSamples = 6
 smpl = NewChronAgeData(nSamples)
 smpl.Name          = ("Sample 1", "Sample 2", "Sample 3", "Sample 4", "Sample 5", "Sample 6") # Et cetera
-smpl.Age          .= [ 220.075277,  328.1557961,  362.6342915,  388.6710551, 396.0014282, 398.351178]# Measured ages
+smpl.Age          .= [ 220.075277,  328.1557961,  362.6342915,  388.6710551, 396.0014282, 398.351178] # Measured ages
 smpl.Age_sigma    .= [   1.0,    1.0,    1.0,    1.0,  1.0,  1.0] # Measured 1-σ uncertainties
 smpl.Height       .= [ -100,  -700, -1100, -1700,  -1900,  -1960] # Depths below surface should be negative
 smpl.Height_sigma .= fill(0.01, nSamples) # Usually assume little or no sample height uncertainty
@@ -100,9 +100,31 @@ config.sieve = round(Int,npoints_approx) # Record one out of every nsieve steps
 # Test that all age-depth models are in stratigraphic order
 @test all([issorted(x, rev=true) for x in eachcol(agedist_test)])
 
-@test isapprox(only(subsmdl_test.Beta), 1.385317084366247, atol=0.2)
-@test isapprox(only(subsmdl_test.Beta_025CI), 1.256171601851893, atol=0.2)
-@test isapprox(only(subsmdl_test.Beta_975CI), 1.5277726246698682, atol=0.2)
-@test isapprox(only(subsmdl_test.T0), 402.94742883910374, atol=50)
-@test isapprox(only(subsmdl_test.T0_025CI), 391.5831873363192, atol=50)
-@test isapprox(only(subsmdl_test.T0_975CI), 419.939403901756, atol=50)
+@test isapprox(only(subsmdl_test.Beta), 1.385317084366247, atol=0.1)
+@test isapprox(only(subsmdl_test.Beta_025CI), 1.256171601851893, atol=0.1)
+@test isapprox(only(subsmdl_test.Beta_975CI), 1.5277726246698682, atol=0.1)
+@test isapprox(only(subsmdl_test.T0), 402.94742883910374, atol=1)
+@test isapprox(only(subsmdl_test.T0_025CI), 391.5831873363192, atol=2)
+@test isapprox(only(subsmdl_test.T0_975CI), 419.939403901756, atol=2)
+
+## Specify subsidence bottom and top
+@time (subsmdl_test, agedist_test, lldist_test, beta_t0dist_test, lldist_burnin_test) = SubsidenceStratMetropolis(smpl, config, therm, model_strat_heights_test[1:end-1], Sμ_test[1:end-1], Sσ_test[1:end-1], 0.05, 10, subsidencebottom=-1000, subsidencetop=-500)
+
+# Test that results match expectation, within some tolerance
+@test subsmdl_test.Age isa Vector{Float64}
+@test subsmdl_test.Beta isa Vector{Float64}
+@test subsmdl_test.T0 isa Vector{Float64}
+@test agedist_test isa Matrix{Float64}
+@test beta_t0dist_test isa Matrix{Float64}
+@test lldist_test isa Vector{Float64}
+@test lldist_burnin_test isa Vector{Float64}
+
+# Test that all age-depth models are in stratigraphic order
+@test all([issorted(x, rev=true) for x in eachcol(agedist_test)])
+
+@test isapprox(only(subsmdl_test.Beta), 1.385317084366247, atol=0.1)
+@test isapprox(only(subsmdl_test.Beta_025CI), 1.256171601851893, atol=0.1)
+@test isapprox(only(subsmdl_test.Beta_975CI), 1.5277726246698682, atol=0.1)
+@test isapprox(only(subsmdl_test.T0), 424.7054550880552, atol=1)
+@test isapprox(only(subsmdl_test.T0_025CI), 374.5867600109799, atol=2)
+@test isapprox(only(subsmdl_test.T0_975CI), 508.34306704599106, atol=2)

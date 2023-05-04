@@ -417,7 +417,10 @@ end
 
 # Part 2a: Modified StratMetropolis for extensional basins - without hiatus
 
-function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConfiguration, therm::ThermalSubsidenceParameters, model_strat_heights, Sμ, Sσ, beta_ip, t0_ip)
+function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConfiguration, therm::ThermalSubsidenceParameters, model_strat_heights, Sμ, Sσ, beta_ip, t0_ip;
+        subsidencebottom=minimum(smpl.Height),
+        subsidencetop=maximum(smpl.Height)
+    )
 
     # Run stratigraphic MCMC model
     print("Generating stratigraphic age-depth model...\n")
@@ -441,7 +444,6 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         (youngest, oldest) = extrema(Age)
         dt_dH = (oldest-youngest)/(top-bottom)
         aveuncert = nanmean(Age_sigma)
-        model_heights = copy(-model_strat_heights[2:end]).*1000
 
     # Model configuration -- read from struct
         resolution = config.resolution
@@ -449,6 +451,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         nsteps = config.nsteps
         burnin = config.burnin
         sieve = config.sieve
+        model_heights = bottom:resolution:top
 
         if bounding>0
             # If bounding is requested, add extrapolated top and bottom bounds to avoid
@@ -462,7 +465,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             model_heights = (bottom-offset):resolution:(top+offset)
         end
 
-        active_height_t = (model_heights .>= bottom) .& (model_heights .<= top)
+        active_height_t = bottom .<= model_heights .<= top
         npoints = length(model_heights)
 
     # STEP 1: calculate log likelihood of the modeled ages (and heights) in the initial proposal
@@ -508,9 +511,10 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
 
     # STEP 3: calculate log likelihood for the fit of the thermal subsidence curve in the initial proposal
         ts_model_ages = reverse(model_ages[active_height_t])
-        model_heights_all = copy(-model_strat_heights).*1000
-        ts_Sμ = Sμ[(model_heights_all .>= bottom) .& (model_heights_all .<= top)]
-        ts_Sσ = Sσ[(model_heights_all .>= bottom) .& (model_heights_all .<= top)]
+        model_heights_input = copy(-model_strat_heights).*1000
+        subsidence_height_t = subsidencebottom .<= model_heights .<= subsidencetop
+        ts_Sμ = Sμ[subsidencebottom .<= model_heights_input .<= subsidencetop]
+        ts_Sσ = Sσ[subsidencebottom .<= model_heights_input .<= subsidencetop]
         ll += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_ages, subs_parameters)/(length(ts_Sμ))
 
     # Preallocate variables for MCMC proposals
@@ -583,7 +587,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(Height, Height_sigma, sample_heightₚ)
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
-            ts_model_agesₚ = reverse(model_agesₚ[active_height_t])
+            ts_model_agesₚ = reverse(model_agesₚ[subsidence_height_t])
             llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)/(length(ts_Sμ))
 
             # Accept or reject proposal based on likelihood
@@ -668,7 +672,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(Height, Height_sigma, sample_heightₚ)
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
-            ts_model_agesₚ = reverse(model_agesₚ[active_height_t])
+            ts_model_agesₚ = reverse(model_agesₚ[subsidence_height_t])
             llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)/(length(ts_Sμ))
 
             # Accept or reject proposal based on likelihood
