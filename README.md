@@ -151,7 +151,7 @@ therm = NewThermalSubsidenceParameters()
 therm.Param = [Beta, T0]
 therm.Sigma = [Beta_sigma, T0_sigma]
 ```
-Note that when entering the age constraints, `smpl.Height` must increase with increasing stratigraphic height.
+Note that when entering the age constraints, `smpl.Height` must increase with increasing stratigraphic height. Also, users must make sure to change the thermal subsidence parameter priors (`Beta`, `Beta_sigma`, `T0`, `T0_sigma`) accordingly so that the prior conditions are appropiate for the specific basin/succession that the user would like to model. If the user has no previous information about the stretching factor &beta;, we suggest setting `Beta` = 2 and `Beta_sigma` = 1 to begin with.
 
 #### Configure and run the thermal subsidence MCMC model
 To run the MCMC model, the user should first configure the model by setting appropiate values for `config.bounding`, `config.nsteps`, and `config.burnin`.
