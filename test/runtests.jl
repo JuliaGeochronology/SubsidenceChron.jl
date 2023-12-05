@@ -1,5 +1,6 @@
 using SubsidenceChron
 using Test, Statistics, StatsBase
+const make_plots = get(ENV, "MAKE_PLOTS", false) == "true"
 
 @testset "Decompaction" begin
     yₚ = zeros(3)

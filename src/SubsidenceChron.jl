@@ -8,7 +8,7 @@ module SubsidenceChron
     # Basic statistics and UI resources
     using ProgressMeter: @showprogress, Progress, update!
     using Distributions
-    using LoopVectorization
+    using LoopVectorization: @turbo
     using IfElse: ifelse
 
     # Custom objects for holding SubsidenceChron age data
