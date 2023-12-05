@@ -1,5 +1,5 @@
 using SubsidenceChron
-using Test, Statistics, StatsBase
+using Test, Statistics
 const make_plots = get(ENV, "MAKE_PLOTS", false) == "true"
 
 @testset "Decompaction" begin

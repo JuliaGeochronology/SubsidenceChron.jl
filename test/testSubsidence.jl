@@ -100,6 +100,12 @@ config.sieve = round(Int,npoints_approx) # Record one out of every nsieve steps
 # Test that all age-depth models are in stratigraphic order
 @test all([issorted(x, rev=true) for x in eachcol(agedist_test)])
 
+# Test mean age-depth model
+mean_ages = nanmean(agedist_test, dim=2)
+expected_mean_ages = [398.51, 397.76, 396.97, 396.19, 395.41, 394.77, 394.01, 393.32, 392.56, 391.69, 390.96, 390.25, 389.5, 388.69, 388.07, 387.31, 386.54, 385.82, 385.01, 384.03, 383.13, 382.12, 381.1, 380.06, 379.05, 378.16, 377.12, 376.14, 375.07, 374.09, 373.28, 372.26, 371.46, 370.74, 369.92, 369.12, 368.26, 367.39, 366.42, 365.62, 364.69, 364.04, 363.28, 362.39, 361.57, 360.37, 358.99, 357.66, 356.38, 354.81, 352.8, 351.25, 349.38, 347.48, 345.39, 343.44, 340.82, 338.84, 337.44, 335.81, 333.81, 331.91, 330.14, 327.91, 324.04, 320.41, 315.1, 310.12, 303.21, 300.91, 299.06, 296.6, 293.87, 290.05, 286.86, 282.1, 279.2, 274.92, 269.83, 265.86, 262.26, 256.78, 253.11, 249.93, 246.67, 241.65, 237.71, 234.62, 231.79, 229.11, 226.93, 224.55, 222.51, 220.12]
+@test all(isapprox.(mean_ages, expected_mean_ages, atol=15))
+
+# Test subsidence parameters
 @test isapprox(only(subsmdl_test.Beta), 1.385317084366247, atol=0.1)
 @test isapprox(only(subsmdl_test.Beta_025CI), 1.256171601851893, atol=0.1)
 @test isapprox(only(subsmdl_test.Beta_975CI), 1.5277726246698682, atol=0.1)
@@ -122,6 +128,12 @@ config.sieve = round(Int,npoints_approx) # Record one out of every nsieve steps
 # Test that all age-depth models are in stratigraphic order
 @test all([issorted(x, rev=true) for x in eachcol(agedist_test)])
 
+# Test mean age-depth model
+mean_ages = nanmean(agedist_test, dim=2)
+expected_mean_ages = [398.59, 397.86, 397.04, 396.25, 395.52, 394.8, 394.05, 393.31, 392.66, 391.9, 391.12, 390.32, 389.51, 388.72, 387.95, 387.13, 386.23, 385.26, 384.26, 383.37, 382.46, 381.57, 380.51, 379.65, 378.79, 377.92, 377.05, 376.0, 375.08, 374.22, 373.35, 372.51, 371.59, 370.68, 369.84, 368.97, 368.1, 367.2, 366.34, 365.5, 364.73, 363.89, 363.03, 362.17, 359.79, 357.95, 356.05, 353.95, 352.15, 350.53, 348.71, 347.06, 345.39, 343.45, 341.7, 340.04, 338.35, 336.99, 335.55, 333.94, 332.4, 330.98, 329.28, 327.84, 324.3, 320.19, 316.01, 312.18, 309.05, 305.76, 301.88, 298.96, 295.37, 291.44, 288.33, 282.65, 278.58, 273.8, 269.99, 266.94, 263.24, 260.67, 257.99, 254.44, 251.25, 248.31, 244.71, 242.33, 239.78, 236.26, 232.88, 229.07, 225.33, 220.34]
+@test all(isapprox.(mean_ages, expected_mean_ages, atol=15))
+
+# Test subsidence parameters
 @test isapprox(only(subsmdl_test.Beta), 1.385317084366247, atol=0.1)
 @test isapprox(only(subsmdl_test.Beta_025CI), 1.256171601851893, atol=0.1)
 @test isapprox(only(subsmdl_test.Beta_975CI), 1.5277726246698682, atol=0.1)
