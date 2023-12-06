@@ -20,6 +20,34 @@ end
 
 # Part 2a: Modified StratMetropolis for extensional basins - without hiatus
 
+# To avoid allocations when indexing by a boolean vector
+function copyat!(dest, t, src)
+    @assert eachindex(t) == eachindex(src)
+    iₙ = firstindex(dest)
+    iₗ = lastindex(dest)
+    @inbounds for iₛ in eachindex(src)
+        if t[iₛ]
+            dest[iₙ] = src[iₛ]
+            iₙ += 1
+            iₙ > iₗ && break
+        end
+    end
+    return dest
+end
+function reversecopyat!(dest, t, src)
+    @assert eachindex(t) == eachindex(src)
+    i₀ = firstindex(dest)
+    iₙ = lastindex(dest)
+    @inbounds for iₛ in eachindex(src)
+        if t[iₛ]
+            dest[iₙ] = src[iₛ]
+            iₙ -= 1
+            iₙ < i₀ && break
+        end
+    end
+    return dest
+end
+
 function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConfiguration, therm::ThermalSubsidenceParameters, subsidence_strat_heights, Sμ, Sσ, beta_ip, t0_ip;
         subsidencebottom=minimum(smpl.Height),
         subsidencetop=maximum(smpl.Height)
@@ -113,7 +141,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
 
     # STEP 3: calculate log likelihood for the fit of the thermal subsidence curve in the initial proposal
         subsidence_height_t = subsidencebottom .<= model_heights .<= subsidencetop
-        ts_model_ages = reverse(model_ages[subsidence_height_t]) # Reversed, because subsidence stuff goes top down
+        ts_model_ages = reverse!(model_ages[subsidence_height_t]) # Reversed, because subsidence stuff goes top down
         @info "Subsidence active for $(count(subsidence_height_t)) model ages"
 
         heightconversion = if smpl.Height_Unit == "km"
@@ -146,6 +174,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         sample_heightₚ = copy(sample_height)
         closest_model_agesₚ = copy(closest_model_ages)
         subs_parametersₚ = copy(subs_parameters)
+        ts_model_agesₚ = copy(ts_model_ages)
 
     # Run burnin
         # acceptancedist = fill(false,burnin)
@@ -162,7 +191,9 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             copyto!(subs_parametersₚ, subs_parameters)
 
             # Propose adjustment to subsidence_parametersₚ
-            subs_parametersₚ .+= randn.() .* ideal_subs_parameters_sigma
+            for i in eachindex(subs_parametersₚ, ideal_subs_parameters_sigma)
+                subs_parametersₚ[i] += randn() * ideal_subs_parameters_sigma[i]
+            end
 
             if rand() < 0.1
                 # Adjust heights
@@ -209,7 +240,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(Height, Height_sigma, sample_heightₚ)
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
-            ts_model_agesₚ = reverse(model_agesₚ[subsidence_height_t])
+            reversecopyat!(ts_model_agesₚ, subsidence_height_t, model_agesₚ)
             llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)/length(ts_Sμ)
 
             # Accept or reject proposal based on likelihood
@@ -247,7 +278,9 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             copyto!(subs_parametersₚ, subs_parameters)
 
             # Propose adjustment to subsidence_parametersₚ
-            subs_parametersₚ .+= randn.() .*ideal_subs_parameters_sigma
+            for i in eachindex(subs_parametersₚ, ideal_subs_parameters_sigma)
+                subs_parametersₚ[i] += randn() * ideal_subs_parameters_sigma[i]
+            end
 
             if rand() < 0.1
                 # Adjust heights
@@ -294,7 +327,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(Height, Height_sigma, sample_heightₚ)
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
-            ts_model_agesₚ = reverse(model_agesₚ[subsidence_height_t])
+            reversecopyat!(ts_model_agesₚ, subsidence_height_t, model_agesₚ)
             llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)/length(ts_Sμ)
 
             # Accept or reject proposal based on likelihood
