@@ -14,7 +14,10 @@ module SubsidenceChron
     # Custom objects for holding SubsidenceChron age data
     include("Objects.jl")
 
-    #Functions for subsidence modeling
+    # Decompaction and backstripping
+    include("DecompactBackstrip.jl")
+
+    # Age-depth modelling
     include("SubsidenceStratMetropolis.jl")
 
     # Structs
