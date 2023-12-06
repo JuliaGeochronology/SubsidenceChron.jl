@@ -21,7 +21,7 @@ module SubsidenceChron
     include("SubsidenceStratMetropolis.jl")
 
     # Structs
-    export StratData, ThermalSubsidenceParameters, SubsidenceStratAgeModel
+    export StratData, WaterDepth, ThermalSubsidenceParameters, SubsidenceStratAgeModel
 
     # High-level functions
     export DecompactBackstrip, SubsidenceStratMetropolis
