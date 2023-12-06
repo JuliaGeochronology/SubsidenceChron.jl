@@ -25,7 +25,7 @@ Y_target = [0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
 @test isapprox(Y, Y_target, atol=0.001)
 
 ## --- Test DecompactBackstrip function
-strat_test = NewStratData(3)
+strat_test = StratData(3)
 strat_test.Lithology = ["Shale", "Sandstone", "Limestone"]
 strat_test.Thickness .= [1, 0.6, 0.4]
 nsims_test = 5000
@@ -60,7 +60,7 @@ subs_ll_test = SubsidenceChron.subsidence_ll(E₀, τ, Sμ_test[1:end-1], Sσ_te
 ## --- Test SubsidenceStratMetropolis function
 # Make an instance of a ChronAgeData object for nSamples
 nSamples = 6
-smpl = NewChronAgeData(nSamples)
+smpl = ChronAgeData(nSamples)
 smpl.Name          = ("Sample 1", "Sample 2", "Sample 3", "Sample 4", "Sample 5", "Sample 6") # Et cetera
 smpl.Age          .= [ 220.075277,  328.1557961,  362.6342915,  388.6710551, 396.0014282, 398.351178] # Measured ages
 smpl.Age_sigma    .= [   1.0,    1.0,    1.0,    1.0,  1.0,  1.0] # Measured 1-σ uncertainties
@@ -75,12 +75,12 @@ Beta = 1.42
 Beta_sigma = 0.2
 T0 = 420
 T0_sigma = 50
-therm = NewThermalSubsidenceParameters()
+therm = ThermalSubsidenceParameters()
 therm.Param = [Beta, T0]
 therm.Sigma = [Beta_sigma, T0_sigma]
 
 # Configure the stratigraphic Monte Carlo model
-config = NewStratAgeModelConfiguration()
+config = StratAgeModelConfiguration()
 config.resolution = 20 # Same units as sample height. Smaller is slower!
 config.bounding = 0.5 # how far away do we place runaway bounds, as a fraction of total section height. Larger is slower.
 (bottom, top) = extrema(smpl.Height)

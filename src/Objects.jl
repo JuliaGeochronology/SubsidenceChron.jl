@@ -5,44 +5,35 @@
         Lithology::Array{String}
         Thickness::Array{Float64,1}
     end
-
-    function NewStratData(nLayers)
-        strat = StratData(
+    function StratData(nLayers)
+        StratData(
             fill("", nLayers),
             fill(NaN,nLayers),
         )
-        return strat
     end
-    export NewStratData
 
     mutable struct WaterDepth
         DepthID::Array{String}
         Thickness::Array{Float64,1}
     end
-
-    function NewWaterDepth(wd_nLayers)
-        wd = WaterDepth(
+    function WaterDepth(wd_nLayers)
+        WaterDepth(
             fill("", wd_nLayers),
             fill(NaN, wd_nLayers),
         )
-        return wd
     end
-    export NewWaterDepth
 
     # A type of object to hold data about the thermal subsidence parameters
     mutable struct ThermalSubsidenceParameters
         Param::Array{Float64,1}
         Sigma::Array{Float64,1}
     end
-
-    function NewThermalSubsidenceParameters()
-        therm = ThermalSubsidenceParameters(
+    function ThermalSubsidenceParameters()
+        ThermalSubsidenceParameters(
             fill(NaN,2),
             fill(NaN,2),
         )
-        return therm
     end
-    export NewThermalSubsidenceParameters
 
     struct SubsidenceStratAgeModel
         Height::Array{Float64,1}
@@ -62,3 +53,9 @@
         T0_025CI::Array{Float64,1}
         T0_975CI::Array{Float64,1}
     end
+
+# For backwards compatibility
+const NewStratData = StratData
+const NewWaterDepth = WaterDepth
+const NewThermalSubsidenceParameters = ThermalSubsidenceParameters
+export NewStratData, NewWaterDepth, NewThermalSubsidenceParameters

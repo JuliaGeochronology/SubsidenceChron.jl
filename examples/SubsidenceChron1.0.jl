@@ -11,7 +11,7 @@
     data_csv = importdataset("examples/Svalbard_highres.csv",',')
     # Obtain stratigraphic info from the data file
     nLayers = length(data_csv["Thickness"])
-    strat = NewStratData(nLayers)
+    strat = StratData(nLayers)
     strat.Lithology          = data_csv["Lithology"]
     strat.Thickness         .= data_csv["Thickness"]
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -22,7 +22,7 @@
     wd_csv = importdataset("examples/Svalbard_SequenceStrat.csv", ',')
     # Obtain paleo water depth info from the data file
     wd_nLayers = length(wd_csv["Thickness"])
-    wd = NewWaterDepth(wd_nLayers)
+    wd = WaterDepth(wd_nLayers)
     wd.DepthID    = wd_csv["Type"]
     wd.Thickness .= wd_csv["Thickness"]
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -65,7 +65,7 @@
     # Input the number of samples we wish to model (must match below)
     nSamples = 4
     # Make an instance of a Chron Section object for nSamples
-    smpl = NewChronAgeData(nSamples)
+    smpl = ChronAgeData(nSamples)
     smpl.Name          = ("Sample 1", "Sample 2", "Sample 3", "Sample 4") # Et cetera
     smpl.Age          .= [879.91,   791.1,    737.5,   717] # Measured ages
     smpl.Age_sigma    .= [  0.63,    2.45,      4.8,   0.4] # Measured 1-σ uncertainties
@@ -89,7 +89,7 @@
     T0 = 816
     T0_sigma = 50
 
-    therm = NewThermalSubsidenceParameters()
+    therm = ThermalSubsidenceParameters()
     therm.Param = [Beta, T0]
     therm.Sigma = [Beta_sigma, T0_sigma]
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -97,14 +97,14 @@
 
     # # # # # # # # # # Configure MCMC model here! # # # # # # # # # #
     # Configure the stratigraphic MCMC model
-    config = NewStratAgeModelConfiguration()
+    config = StratAgeModelConfiguration()
     # If you in doubt, you can probably leave these parameters as-is
     config.resolution = res*1000 # Same units as sample height. Smaller is slower!
     config.bounding = 1.0 # how far away do we place runaway bounds, as a fraction of total section height. Larger is slower.
     (bottom, top) = extrema(smpl.Height)
     npoints_approx = round(Int,length(bottom:config.resolution:top) * (1 + 2*config.bounding))
-    config.nsteps = 5000 # Number of steps to run in distribution MCMC 
-    config.burnin = 1000*npoints_approx # Number to discard 
+    config.nsteps = 5000 # Number of steps to run in distribution MCMC
+    config.burnin = 1000*npoints_approx # Number to discard
     config.sieve = round(Int,npoints_approx) # Record one out of every nsieve steps
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -395,7 +395,7 @@
     ## --- Option 3: Stratigraphic MCMC model including hiata with known durations
         # Data about hiata
         nHiatuses = 1 # The number of hiata you have data for
-        hiatus = NewHiatusData(nHiatuses) # Struct to hold data
+        hiatus = HiatusData(nHiatuses) # Struct to hold data
         hiatus.Height         = [  -500]
         hiatus.Height_sigma   = [   0.0]
         hiatus.Duration       = [ 100.0]

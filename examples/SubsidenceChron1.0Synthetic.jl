@@ -12,29 +12,29 @@
     data_csv = importdataset("examples/Test_DB_PerfectSubsidence.csv",',')
     # Obtain stratigraphic info from the data file
     nLayers = length(data_csv["Thickness"])
-    strat = NewStratData(nLayers)
+    strat = StratData(nLayers)
     strat.Lithology          = data_csv["Lithology"]
     strat.Thickness         .= data_csv["Thickness"]
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
-    # # # # # # # # OPTIONAL - Enter paleo water depth information here! # # # # # # # # 
+    # # # # # # # # OPTIONAL - Enter paleo water depth information here! # # # # # # # #
     # Import the data file (.csv)
     wd_csv = importdataset("examples/PerfectSubsidence_SequenceStrat.csv", ',')
     # Obtain paleo water depth info from the data file
     wd_nLayers = length(wd_csv["Thickness"])
-    wd = NewWaterDepth(wd_nLayers)
+    wd = WaterDepth(wd_nLayers)
     wd.DepthID    = wd_csv["Type"]
-    wd.Thickness .= wd_csv["Thickness"] 
+    wd.Thickness .= wd_csv["Thickness"]
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
     # # # # # # # # # # Configure MC model here! # # # # # # # # # #
     # Number of MC simulations
-    nsims = 1000 
+    nsims = 1000
     # Resolution for model horizons (in km)
     res = 0.02
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     # Run the decompaction and backstripping MC model
     # (wd input is optional)
@@ -52,7 +52,7 @@
     Sμ = readdlm("St_mu_highres.csv", ',', Float64)
     Sσ = readdlm("St_sigma_highres.csv", ',', Float64)
     =#
-    
+
     # Plot results - tectonic subsidence in comparison with present day stratigraphic heights
     p1 = plot(Sμ, alpha = 1, yflip = true, xflip = true, label = "Tectonic subsidence", color = "blue")
     #plot!(p1, reverse((model_strat_heights)*1000), yflip = true, label = "Present-day thickness", color = "red")
@@ -60,13 +60,13 @@
     savefig(p1, "Test_DecompactBackstrip_higherres.pdf")
 
 
-## --- Part 2a: Age-depth modeling 
+## --- Part 2a: Age-depth modeling
 
     # # # # # # # # # # # Enter age constraint (sample) information here! # # # # # # # # # # # #
     # Input the number of samples we wish to model (must match below)
     nSamples = 4
     # Make an instance of a Chron Section object for nSamples
-    smpl = NewChronAgeData(nSamples)
+    smpl = ChronAgeData(nSamples)
     smpl.Name          = ("Sample 1", "Sample 2", "Sample 3", "Sample 4") # Et cetera
     smpl.Age          .= [   388.67,   362.63,    328.16,   220.08] # Measured ages
     smpl.Age_sigma    .= [        2,        2,         2,        2] # Measured 1-σ uncertainties
@@ -90,7 +90,7 @@
     T0 = 410
     T0_sigma = 50
 
-    therm = NewThermalSubsidenceParameters()
+    therm = ThermalSubsidenceParameters()
     therm.Param = [Beta, T0]
     therm.Sigma = [Beta_sigma, T0_sigma]
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -98,14 +98,14 @@
 
     # # # # # # # # # # Configure MCMC model here! # # # # # # # # # #
     # Configure the stratigraphic MCMC model
-    config = NewStratAgeModelConfiguration()
+    config = StratAgeModelConfiguration()
     # If you in doubt, you can probably leave these parameters as-is
     config.resolution = res*1000 # Same units as sample height. Smaller is slower!
     config.bounding = 1.0 # how far away do we place runaway bounds, as a fraction of total section height. Larger is slower.
     (bottom, top) = extrema(smpl.Height)
     npoints_approx = round(Int,length(bottom:config.resolution:top) * (1 + 2*config.bounding))
-    config.nsteps = 5000 # Number of steps to run in distribution MCMC 
-    config.burnin = 10000*npoints_approx # Number to discard 
+    config.nsteps = 5000 # Number of steps to run in distribution MCMC
+    config.burnin = 10000*npoints_approx # Number to discard
     config.sieve = round(Int,npoints_approx) # Record one out of every nsieve steps
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -146,7 +146,7 @@
         post_beta = histogram(beta_t0dist[1,:], color="black", linecolor=nothing, alpha = 0.5, nbins=50)
         vline!([subsmdl.Beta_Median], linecolor = "black", linestyle=:dot, linewidth = 3)
         savefig(post_beta, "Test_PosteriorBeta.pdf")
-        
+
         # Plot 3: Posterior distributions of t₀
         post_t0 = histogram(beta_t0dist[2,:], color="black", linecolor=nothing, alpha = 0.5, nbins=50)
         vline!([subsmdl.T0_Median], linecolor = "black", linestyle=:dot, linewidth = 3)
@@ -176,7 +176,7 @@
         t0_range = therm.Param[2]-therm.Sigma[2]*3:1:therm.Param[2]+therm.Sigma[2]*3 #three sigmas
         beta_pdf = pdf.(Normal(therm.Param[1], therm.Sigma[1]), beta_range)
         t0_pdf = pdf.(Normal(therm.Param[2], therm.Sigma[2]), t0_range)
-        
+
         h1 = fit(Histogram, beta_t0dist[1,:], nbins = 50)
 
         g1 = fit(Histogram, beta_t0dist[2,:], 372:2:536)
@@ -184,7 +184,7 @@
         testplot2_1 = plot(beta_range, beta_pdf, linecolor = "black", label = "prior", alpha = 0.5, xlims = (1,2), legend=:topright)
         vline!([therm.Param[1]], label = "actual beta", linecolor = "black", alpha = 0.5, linestyle=:dot, linewidth = 2, xlims = (1,2)) #1.4+/-0.2
         histogram!(twinx(), beta_t0dist[1,:], label = "posterior", color ="black", linecolor=nothing, xlims = (1,2), alpha = 0.5)
-        
+
         testplot2_1_v2 = plot(beta_range, beta_pdf, linecolor = "black", label = "prior", legend=:topright, xlims = (1,2))
         vline!([therm.Param[1]], label = "actual beta", linecolor = "black", linestyle=:dot, linewidth = 2, xlims = (1,2)) #1.4+/-0.2
 
