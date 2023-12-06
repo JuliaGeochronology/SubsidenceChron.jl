@@ -157,7 +157,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         else
             1
         end
-        if all(x->x<0, smpl.Height)
+        if all(x->!(x>0), smpl.Height)
             input_subsidence_t = subsidencebottom .<= -(subsidence_strat_heights*heightconversion) .<= subsidencetop
         else
             sectionthickness = maximum(subsidence_strat_heights)*heightconversion
