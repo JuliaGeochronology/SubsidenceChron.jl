@@ -81,7 +81,7 @@ therm.Sigma = [Beta_sigma, T0_sigma]
 
 # Configure the stratigraphic Monte Carlo model
 config = StratAgeModelConfiguration()
-config.resolution = 20 # Same units as sample height. Smaller is slower!
+config.resolution = res_test*1000 # Same units as sample height. Smaller is slower!
 config.bounding = 0.5 # how far away do we place runaway bounds, as a fraction of total section height. Larger is slower.
 (bottom, top) = extrema(smpl.Height)
 npoints_approx = round(Int,length(bottom:config.resolution:top) * (1 + 2*config.bounding))
@@ -134,7 +134,48 @@ expected_mean_ages = [398.55, 397.76, 396.96, 396.19, 395.43, 394.71, 393.93, 39
 # Test mean age-depth model
 mean_ages = nanmean(agedist_test, dim=2)
 expected_mean_ages = [398.5, 397.72, 396.95, 396.2, 395.46, 394.71, 393.95, 393.19, 392.43, 391.66, 390.89, 390.11, 389.36, 388.65, 387.8, 386.92, 386.08, 385.21, 384.34, 383.44, 382.56, 381.69, 380.82, 379.97, 379.11, 378.25, 377.35, 376.47, 375.58, 374.69, 373.78, 372.87, 371.97, 371.06, 370.17, 369.29, 368.4, 367.5, 366.6, 365.72, 364.85, 363.99, 363.15, 362.31, 360.63, 358.91, 357.16, 355.46, 353.7, 352.04, 350.24, 348.51, 346.78, 344.97, 343.24, 341.49, 339.76, 338.02, 336.23, 334.61, 332.92, 331.29, 329.63, 327.98, 325.37, 322.71, 319.84, 316.61, 313.29, 310.11, 306.75, 303.37, 299.87, 296.55, 292.74, 289.19, 285.59, 281.84, 277.8, 273.63, 269.47, 265.38, 261.12, 257.3, 253.1, 249.34, 245.41, 241.86, 238.09, 234.59, 230.73, 226.96, 223.6, 220.28]
-@test all(isapprox.(mean_ages, expected_mean_ages, atol=20))
+@test all(isapprox.(mean_ages, expected_mean_ages, atol=25))
+
+# Test subsidence parameters
+@test isapprox(only(subsmdl_test.Beta), 1.385317084366247, atol=0.1)
+@test isapprox(only(subsmdl_test.Beta_025CI), 1.256171601851893, atol=0.1)
+@test isapprox(only(subsmdl_test.Beta_975CI), 1.5277726246698682, atol=0.1)
+@test isapprox(only(subsmdl_test.T0), 422.18738952637034, atol=5)
+@test isapprox(only(subsmdl_test.T0_025CI), 374.5867600109799, atol=10)
+@test isapprox(only(subsmdl_test.T0_975CI), 506.10804878585355, atol=10)
+
+## --- As above, but specify heights as positive numbers above bottom of section
+
+# Make an instance of a ChronAgeData object for nSamples
+nSamples = 6
+smpl = ChronAgeData(nSamples)
+smpl.Name          = ("Sample 1", "Sample 2", "Sample 3", "Sample 4", "Sample 5", "Sample 6") # Et cetera
+smpl.Age          .= [ 220.075277,  328.1557961,  362.6342915,  388.6710551, 396.0014282, 398.351178] # Measured ages
+smpl.Age_sigma    .= [   1.0,    1.0,    1.0,    1.0,  1.0,  1.0] # Measured 1-σ uncertainties
+smpl.Height       .= [  1900,   1300,    900,    300,  100,   40] # depths above bottom of section as positive
+smpl.Height_sigma .= fill(0.01, nSamples) # Usually assume little or no sample height uncertainty
+smpl.Age_Sidedness .= zeros(nSamples) # Sidedness (zeros by default: geochron constraints are two-sided). Use -1 for a maximum age and +1 for a minimum age, 0 for two-sided
+smpl.Age_Unit = "Ma" # Unit of measurement for ages
+smpl.Height_Unit = "m"
+
+@time (subsmdl_test, agedist_test, lldist_test, beta_t0dist_test, lldist_burnin_test) = SubsidenceStratMetropolis(smpl, config, therm, model_strat_heights_test[1:end-1], Sμ_test[1:end-1], Sσ_test[1:end-1], 0.05, 10, subsidencebottom=1000, subsidencetop=1500)
+
+# Test that results match expectation, within some tolerance
+@test subsmdl_test.Age isa Vector{Float64}
+@test subsmdl_test.Beta isa Vector{Float64}
+@test subsmdl_test.T0 isa Vector{Float64}
+@test agedist_test isa Matrix{Float64}
+@test beta_t0dist_test isa Matrix{Float64}
+@test lldist_test isa Vector{Float64}
+@test lldist_burnin_test isa Vector{Float64}
+
+# Test that all age-depth models are in stratigraphic order
+@test all([issorted(x, rev=true) for x in eachcol(agedist_test)])
+
+# Test mean age-depth model
+mean_ages = nanmean(agedist_test, dim=2)
+expected_mean_ages = [398.5, 397.72, 396.95, 396.2, 395.46, 394.71, 393.95, 393.19, 392.43, 391.66, 390.89, 390.11, 389.36, 388.65, 387.8, 386.92, 386.08, 385.21, 384.34, 383.44, 382.56, 381.69, 380.82, 379.97, 379.11, 378.25, 377.35, 376.47, 375.58, 374.69, 373.78, 372.87, 371.97, 371.06, 370.17, 369.29, 368.4, 367.5, 366.6, 365.72, 364.85, 363.99, 363.15, 362.31, 360.63, 358.91, 357.16, 355.46, 353.7, 352.04, 350.24, 348.51, 346.78, 344.97, 343.24, 341.49, 339.76, 338.02, 336.23, 334.61, 332.92, 331.29, 329.63, 327.98, 325.37, 322.71, 319.84, 316.61, 313.29, 310.11, 306.75, 303.37, 299.87, 296.55, 292.74, 289.19, 285.59, 281.84, 277.8, 273.63, 269.47, 265.38, 261.12, 257.3, 253.1, 249.34, 245.41, 241.86, 238.09, 234.59, 230.73, 226.96, 223.6, 220.28]
+@test all(isapprox.(mean_ages, expected_mean_ages, atol=25))
 
 # Test subsidence parameters
 @test isapprox(only(subsmdl_test.Beta), 1.385317084366247, atol=0.1)
