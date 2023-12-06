@@ -144,7 +144,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
     # STEP 3: calculate log likelihood for the fit of the thermal subsidence curve in the initial proposal
         subsidence_height_t = subsidencebottom .<= model_heights .<= subsidencetop
         ts_model_ages = reverse!(model_ages[subsidence_height_t]) # Reversed, because subsidence stuff goes top down
-        @info "Subsidence active for $(count(subsidence_height_t)) model ages"
+        @info "Subsidence active for $(count(subsidence_height_t)) model horizons"
 
         heightconversion = if smpl.Height_Unit == "km"
             1
@@ -157,16 +157,17 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         else
             1
         end
-        if all(x->!(x>0), smpl.Height)
-            input_subsidence_t = subsidencebottom .<= -(subsidence_strat_heights*heightconversion) .<= subsidencetop
+        equivalent_strat_height = if all(x->!(x>0), smpl.Height)
+            -subsidence_strat_heights*heightconversion
         else
             sectionthickness = maximum(subsidence_strat_heights)*heightconversion
-            input_subsidence_t = (sectionthickness-subsidencetop) .<= (subsidence_strat_heights*heightconversion) .<= (sectionthickness-subsidencebottom)
+            sectionthickness .- subsidence_strat_heights*heightconversion
         end
-        @info "Subsidence active for $(count(input_subsidence_t)) model horizons"
+        closest_subsidence = findclosest(reverse!(model_heights[subsidence_height_t]), equivalent_strat_height)
+        @info "Found $(length(closest_subsidence)) closest model horizons"
 
-        ts_Sμ = Sμ[input_subsidence_t]
-        ts_Sσ = Sσ[input_subsidence_t]
+        ts_Sμ = Sμ[closest_subsidence]
+        ts_Sσ = Sσ[closest_subsidence]
         ll += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_ages, subs_parameters)/length(ts_Sμ)
 
     # Preallocate variables for MCMC proposals
