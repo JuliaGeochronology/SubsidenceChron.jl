@@ -128,6 +128,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             #end
         end
 
+        # Initial proposal ll
         ll = normpdf_ll(Age, Age_sigma, closest_model_ages)
         ll += normpdf_ll(Height, Height_sigma, sample_height)
 
@@ -138,12 +139,12 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
 
         # Initial proposal for subsidence parameters - randomly pick a set of values from the distribution
         subs_parameters = [ideal_subs_parameters[1]+beta_ip, ideal_subs_parameters[2]+t0_ip]
-        # Calculate log likelihood of this initial proposal for subsidence parameters
+        # Add subsidence parameter likelihood to the initial proposal ll
         ll += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parameters)
 
     # STEP 3: calculate log likelihood for the fit of the thermal subsidence curve in the initial proposal
         subsidence_height_t = subsidencebottom .<= model_heights .<= subsidencetop
-        ts_model_ages = reverse!(model_ages[subsidence_height_t]) # Reversed, because subsidence stuff goes top down
+        ts_model_ages = model_ages[subsidence_height_t] # N.B., subsidence stuff goes top down
         @info "Subsidence active for $(count(subsidence_height_t)) model horizons"
 
         heightconversion = if smpl.Height_Unit == "km"
@@ -163,11 +164,14 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             sectionthickness = maximum(subsidence_strat_heights)*heightconversion
             sectionthickness .- subsidence_strat_heights*heightconversion
         end
-        closest_subsidence = findclosest(reverse!(model_heights[subsidence_height_t]), equivalent_strat_height)
+        # Find the subsidence model horizons that match each age model horizon within the range where subsidence modelling is active
+        closest_subsidence = findclosest(model_heights[subsidence_height_t], equivalent_strat_height)
         @info "Found $(length(closest_subsidence)) closest model horizons"
-
+        # N.B. this will reverse ts_Sμ and ts_Sσ to match the (bottom-up) order in model_heights 
         ts_Sμ = Sμ[closest_subsidence]
         ts_Sσ = Sσ[closest_subsidence]
+
+        # Add subsidence likelihood to initial proposal ll
         ll += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_ages, subs_parameters)/length(ts_Sμ)
 
     # Preallocate variables for MCMC proposals
@@ -243,7 +247,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(Height, Height_sigma, sample_heightₚ)
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
-            reversecopyat!(ts_model_agesₚ, subsidence_height_t, model_agesₚ)
+            copyat!(ts_model_agesₚ, subsidence_height_t, model_agesₚ)
             llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)/length(ts_Sμ)
 
             # Accept or reject proposal based on likelihood
@@ -330,7 +334,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(Height, Height_sigma, sample_heightₚ)
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
-            reversecopyat!(ts_model_agesₚ, subsidence_height_t, model_agesₚ)
+            copyat!(ts_model_agesₚ, subsidence_height_t, model_agesₚ)
             llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)/length(ts_Sμ)
 
             # Accept or reject proposal based on likelihood
