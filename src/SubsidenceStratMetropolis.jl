@@ -57,13 +57,13 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
     print("Generating stratigraphic age-depth model...\n")
 
     # Define thermal subsidence model parameters
-        y_litho= 125000
+        y_litho= 125000 # Meters!
         ρ_mantle = 3330
         ρ_water = 1000
         αᵥ = 3.28*10^(-5)
         T_mantle = 1333
         τ = 50 #Myr
-        E₀ = (4*y_litho*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water))
+        E₀ = (4*y_litho*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water)) # Also meters!
 
     # Stratigraphic age constraints
         Age = copy(smpl.Age)::Array{Float64,1}
@@ -166,9 +166,11 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         end
         # Find the subsidence model horizons that match each age model horizon within the range where subsidence modelling is active
         closest_subsidence = findclosest(model_heights[subsidence_height_t], equivalent_strat_height)
+        closest_subsidencebottom = findclosest(subsidencebottom, equivalent_strat_height)
+
         @info "Found $(length(closest_subsidence)) closest model horizons"
         # N.B. this will reverse ts_Sμ and ts_Sσ to match the (bottom-up) order in model_heights 
-        ts_Sμ = Sμ[closest_subsidence]
+        ts_Sμ = Sμ[closest_subsidence] .- Sμ[closest_subsidencebottom] # We only consider subsidence that happens after `subsidencebottom`
         ts_Sσ = Sσ[closest_subsidence]
 
         # Add subsidence likelihood to initial proposal ll

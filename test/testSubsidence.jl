@@ -44,13 +44,13 @@ Sσ_target = [98.7, 98.9, 99.1, 99.3, 99.5, 99.6, 99.7, 99.8, 99.9, 100.0, 100.0
 #Still need a test for Sσ - will run the model for longer/a few times and figure out the mean and variance of Sσ
 
 ## --- Test subsidence_ll function
-y_litho= 125000
+y_litho= 125000 # meters!
 ρ_mantle = 3330
 ρ_water = 1000
 αᵥ = 3.28*10^(-5)
 T_mantle = 1333
 τ = 50 #Myr
-E₀ = (4*y_litho*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water))
+E₀ = (4*y_litho*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water)) # Also meters!
 
 calc_ages = [119.0972886, 159.6099062, 182.1044563, 197.8668511, 210.0732074, 220.075277, 228.5755609, 235.9863097, 242.570271, 248.5052774, 253.9173321, 258.8990017, 263.520312, 267.8355388, 271.8876202, 275.7111255, 279.3343123, 282.7805892, 286.0695784, 289.2179037, 292.2397845, 295.1474908, 297.9516962, 300.6617565, 303.2859309, 305.8315604, 308.3052128, 310.7128024, 313.0596895, 315.3507635, 317.5905147, 319.7830954, 321.9323735, 324.0419813, 326.115359, 328.1557961, 330.1664717, 332.1504946, 334.1109458, 336.050925, 337.9736047, 339.8822946, 341.7805242, 343.6721515, 345.5615154, 347.4536569, 349.3546633, 351.2722381, 353.2167383, 355.2033331, 357.2577057, 358.3641581, 359.454486, 360.5292613, 361.5890253, 362.6342915, 363.665547, 364.683254, 365.6878516, 366.6797572, 367.6593674, 368.6270595, 369.5831926, 370.5281083, 371.462132, 372.3855734, 373.2987277, 374.2018758, 375.0952859, 375.9792132, 376.8539016, 377.7195836, 378.5764815, 379.4248081, 380.2647678, 381.0965574, 381.9203676, 382.7363844, 383.5447916, 384.3457736, 385.1395192, 385.8424306, 386.5467493, 387.252755, 387.9607487, 388.6710551, 389.3840265, 390.100048, 390.8195425, 391.5429789, 392.2708803, 393.0038368, 393.742521, 394.48771, 395.2403155, 396.0014282, 396.7723861, 397.5548851, 398.351178, 399.1644792, 400]
 beta_t0_test = [1.4, 400]
@@ -137,12 +137,12 @@ expected_mean_ages = [398.5, 397.72, 396.95, 396.2, 395.46, 394.71, 393.95, 393.
 @test all(isapprox.(mean_ages, expected_mean_ages, atol=25))
 
 # Test subsidence parameters
-@test isapprox(only(subsmdl_test.Beta), 1.385317084366247, atol=0.1)
-@test isapprox(only(subsmdl_test.Beta_025CI), 1.256171601851893, atol=0.1)
-@test isapprox(only(subsmdl_test.Beta_975CI), 1.5277726246698682, atol=0.1)
-@test isapprox(only(subsmdl_test.T0), 422.18738952637034, atol=5)
-@test isapprox(only(subsmdl_test.T0_025CI), 374.5867600109799, atol=10)
-@test isapprox(only(subsmdl_test.T0_975CI), 506.10804878585355, atol=10)
+@test isapprox(only(subsmdl_test.Beta), 1.1247054117222945, atol=0.1)
+@test isapprox(only(subsmdl_test.Beta_025CI), 1.0148599420923872, atol=0.1)
+@test isapprox(only(subsmdl_test.Beta_975CI), 1.3342992791049268, atol=0.1)
+@test isapprox(only(subsmdl_test.T0), 393.8046591276067, atol=5)
+@test isapprox(only(subsmdl_test.T0_025CI), 338.7980819566939, atol=10)
+@test isapprox(only(subsmdl_test.T0_975CI), 499.6217634635351, atol=10)
 
 ## --- As above, but specify heights as positive numbers above bottom of section
 
@@ -178,9 +178,9 @@ expected_mean_ages = [398.5, 397.72, 396.95, 396.2, 395.46, 394.71, 393.95, 393.
 @test all(isapprox.(mean_ages, expected_mean_ages, atol=25))
 
 # Test subsidence parameters
-@test isapprox(only(subsmdl_test.Beta), 1.385317084366247, atol=0.1)
-@test isapprox(only(subsmdl_test.Beta_025CI), 1.256171601851893, atol=0.1)
-@test isapprox(only(subsmdl_test.Beta_975CI), 1.5277726246698682, atol=0.1)
-@test isapprox(only(subsmdl_test.T0), 422.18738952637034, atol=5)
-@test isapprox(only(subsmdl_test.T0_025CI), 374.5867600109799, atol=10)
-@test isapprox(only(subsmdl_test.T0_975CI), 506.10804878585355, atol=10)
+@test isapprox(only(subsmdl_test.Beta), 1.1247054117222945, atol=0.1)
+@test isapprox(only(subsmdl_test.Beta_025CI), 1.0148599420923872, atol=0.1)
+@test isapprox(only(subsmdl_test.Beta_975CI), 1.3342992791049268, atol=0.1)
+@test isapprox(only(subsmdl_test.T0), 393.8046591276067, atol=5)
+@test isapprox(only(subsmdl_test.T0_025CI), 338.7980819566939, atol=10)
+@test isapprox(only(subsmdl_test.T0_975CI), 499.6217634635351, atol=10)
