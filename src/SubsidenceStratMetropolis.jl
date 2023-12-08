@@ -363,6 +363,8 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
 
     # Crop the result
         agedist = agedist[active_height_t,:]
+        betadist = beta_t0dist[1,:]
+        t0dist = beta_t0dist[2,:]
         subsmdl = SubsidenceStratAgeModel(
             model_heights[active_height_t], # Model heights
             nanmean(agedist,dim=2), # Mean age
@@ -370,16 +372,16 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             nanmedian(agedist,dim=2), # Median age
             nanpctile(agedist,2.5,dim=2), # 2.5th percentile
             nanpctile(agedist,97.5,dim=2), # 97.5th percentile
-            nanmean(beta_t0dist[1,:],dim=1), # Mean beta
-            nanstd(beta_t0dist[1,:],dim=1), # Standard deviation
-            nanmedian(beta_t0dist[1,:],dim=1), # Median beta
-            nanpctile(beta_t0dist[1,:],2.5,dim=1), # 2.5th percentile
-            nanpctile(beta_t0dist[1,:],97.5,dim=1), # 97.5th percentile
-            nanmean(beta_t0dist[2,:],dim=1), # Mean T0
-            nanstd(beta_t0dist[2,:],dim=1), # Standard deviation
-            nanmedian(beta_t0dist[2,:],dim=1), # Median T0
-            nanpctile(beta_t0dist[2,:],2.5,dim=1), # 2.5th percentile
-            nanpctile(beta_t0dist[2,:],97.5,dim=1) # 97.5th percentile
+            nanmean(betadist,dim=1), # Mean beta
+            nanstd(betadist,dim=1), # Standard deviation
+            nanmedian(betadist,dim=1), # Median beta
+            nanpctile(betadist,2.5,dim=1), # 2.5th percentile
+            nanpctile(betadist,97.5,dim=1), # 97.5th percentile
+            nanmean(t0dist,dim=1), # Mean T0
+            nanstd(t0dist,dim=1), # Standard deviation
+            nanmedian(t0dist,dim=1), # Median T0
+            nanpctile(t0dist,2.5,dim=1), # 2.5th percentile
+            nanpctile(t0dist,97.5,dim=1) # 97.5th percentile
         )
     return subsmdl, agedist, lldist, beta_t0dist, lldist_burnin
 end
