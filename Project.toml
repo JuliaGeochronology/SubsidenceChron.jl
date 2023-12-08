@@ -1,7 +1,7 @@
 name = "SubsidenceChron"
 uuid = "f7321fe0-76de-4184-b262-f3439fe138fd"
 authors = ["Tianran Zhang", "C. Brenhin Keller"]
-version = "0.1.8"
+version = "0.1.9"
 
 [deps]
 Chron = "68885b1f-77b5-52a7-b2e7-6a8014c56b98"
