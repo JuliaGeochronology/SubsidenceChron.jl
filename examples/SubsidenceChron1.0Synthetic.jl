@@ -32,13 +32,13 @@
     # # # # # # # # # # Configure MC model here! # # # # # # # # # #
     # Number of MC simulations
     nsims = 1000
-    # Resolution for model horizons (in km)
-    res = 0.02
+    # Resolution for model horizons (in meters)
+    res = 20.0 # meters
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     # Run the decompaction and backstripping MC model
     # (wd input is optional)
-    @time (Sₜ, Sμ, Sσ, model_strat_heights) = DecompactBackstrip(strat, wd, nsims, res)
+    @time (Sₜ, Sμ, Sσ, subsidence_strat_heights) = DecompactBackstrip(strat, wd, nsims, res)
 
     #= Code for storing and reading decompaction + backstripping results - will be useful when testing the age-depth modeling part of the model
     # Store results
@@ -55,7 +55,7 @@
 
     # Plot results - tectonic subsidence in comparison with present day stratigraphic heights
     p1 = plot(Sμ, alpha = 1, yflip = true, xflip = true, label = "Tectonic subsidence", color = "blue")
-    #plot!(p1, reverse((model_strat_heights)*1000), yflip = true, label = "Present-day thickness", color = "red")
+    #plot!(p1, reverse(subsidence_strat_heights), yflip = true, label = "Present-day thickness", color = "red")
     plot!(p1, Sₜ[:,2:end], alpha = 0.01, label = "", yflip = true, color = "blue", fg_color_legend=:white)
     savefig(p1, "Test_DecompactBackstrip_higherres.pdf")
 
@@ -100,7 +100,7 @@
     # Configure the stratigraphic MCMC model
     config = StratAgeModelConfiguration()
     # If you in doubt, you can probably leave these parameters as-is
-    config.resolution = res*1000 # Same units as sample height. Smaller is slower!
+    config.resolution = res # Same units as sample height. Smaller is slower!
     config.bounding = 1.0 # how far away do we place runaway bounds, as a fraction of total section height. Larger is slower.
     (bottom, top) = extrema(smpl.Height)
     npoints_approx = round(Int,length(bottom:config.resolution:top) * (1 + 2*config.bounding))
@@ -111,7 +111,7 @@
 
 ## --- Option a: Stratigraphic MCMC model without hiatus
     #Run the model
-    (subsmdl, agedist, lldist, beta_t0dist, lldist_burnin) = SubsidenceStratMetropolis(smpl, config, therm, model_strat_heights, Sμ, Sσ, 0.05, 10)
+    (subsmdl, agedist, lldist, beta_t0dist, lldist_burnin) = SubsidenceStratMetropolis(smpl, config, therm, subsidence_strat_heights, Sμ, Sσ, 0.05, 10)
 
     #= Code for storing and reading age-depth model results
     # Store and read results

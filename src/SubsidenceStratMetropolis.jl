@@ -148,15 +148,15 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         @info "Subsidence active for $(count(subsidence_height_t)) model horizons"
 
         heightconversion = if smpl.Height_Unit == "km"
-            1
+            0.001
         elseif smpl.Height_Unit == "m"
-            1000
+            1.
         elseif smpl.Height_Unit == "cm"
-            100_000
+            100.
         elseif smpl.Height_Unit == "mm"
-            1_000_000
+            1_000.
         else
-            1
+            1.
         end
         equivalent_strat_height = if all(x->!(x>0), smpl.Height)
             -subsidence_strat_heights*heightconversion

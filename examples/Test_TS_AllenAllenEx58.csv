@@ -1,6 +1,6 @@
 layer,Thickness,Lithology
-5,0.2,Shale
-4,0.25,Sandstone
-3,0.75,Shale
-2,1.3,Chalk
-1,0.9,Sandstone
+5,200,Shale
+4,250,Sandstone
+3,750,Shale
+2,1300,Chalk
+1,900,Sandstone

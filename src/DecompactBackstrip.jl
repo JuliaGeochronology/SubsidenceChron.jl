@@ -69,7 +69,8 @@ function subsidenceparams(lithology::AbstractString)
         ϕ₀_dist = Uniform(0, 1)
         ρg = 2700
     end
-    return c_dist, ϕ₀_dist, ρg
+    # Divide by 1000 to convert c_dist from 1/km to 1/m
+    return c_dist/1000, ϕ₀_dist, ρg
 end
 function subsidenceparams(lithology::Vector{<:AbstractString})
     # porosity depth coefficient(c)
@@ -149,7 +150,7 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
         # Bulk density of the entire column
         ρ_bulk_column = Array{Float64,1}(undef, model_nlayer+1)
         # Tectonic subsidence # this is the only one that will need to propagate outside of the loop
-        Sₜ_km = Array{Float64,2}(undef, model_nlayer+1, nsims)
+        Sₜ = Array{Float64,2}(undef, model_nlayer+1, nsims) # meters
 
     # MC for decompaction and backstripping
         # Visualize the progress in terminal
@@ -199,13 +200,13 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
             # Define the water depth distributions for all input layers based on their water depth classifications
             for i = 1:wd_nlayer_input
                 if wd_id_inputs[i] == "Exposure"
-                    paleo_wd_dist[i] = Uniform(0, 0.00001)
+                    paleo_wd_dist[i] = Uniform(0, 0.01)
                 elseif wd_id_inputs[i] == "FWWB"
-                    paleo_wd_dist[i] = Uniform(0.005,0.015)
+                    paleo_wd_dist[i] = Uniform(5,15)
                 elseif wd_id_inputs[i] == "SWB"
-                    paleo_wd_dist[i] = Uniform(0.015,0.04)
+                    paleo_wd_dist[i] = Uniform(15,40)
                 elseif wd_id_inputs[i] == "BWB"
-                    paleo_wd_dist[i] = Uniform(0.04,0.1)
+                    paleo_wd_dist[i] = Uniform(40,100)
                 end
             end
 
@@ -247,7 +248,7 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
                 # maximum([:,i]) = total depth of column at time step i
                 ρ_bulk_column[i] = sum(view(m_bulk,:,i))/maximum(view(Y,:,i))
                 # Tectonic subsidence for all timesteps; record results from all simulations
-                Sₜ_km[i,sim] = Y[model_nlayer+2-i,i]*((ρm-ρ_bulk_column[i])/(ρm-ρw)).+paleo_wd_highres[i]
+                Sₜ[i,sim] = Y[model_nlayer+2-i,i]*((ρm-ρ_bulk_column[i])/(ρm-ρw)).+paleo_wd_highres[i]
             end
 
             mod(sim,pgrs_interval)==0 && update!(pgrs, sim)
@@ -255,7 +256,6 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
         update!(pgrs,nsims)
 
         # Calculate summary statistics (mean and standard deviation)
-        Sₜ = Sₜ_km .* 1000
         Sμ = nanmean(Sₜ, dim=2)
         Sσ = nanstd(Sₜ, dim=2)
 
@@ -300,7 +300,7 @@ function DecompactBackstrip(strat::StratData, nsims, res)
         # bulk density of the entire column
         ρ_bulk_column = Array{Float64,1}(undef, model_nlayer+1)
         # tectonic subsidence # this is the only one that will need to propagate outside of the loop
-        Sₜ_km = Array{Float64,2}(undef, model_nlayer+1, nsims)
+        Sₜ = Array{Float64,2}(undef, model_nlayer+1, nsims) # meters
 
     # MC for decompaction and backstripping
         # Visualize the progress in terminal
@@ -362,7 +362,7 @@ function DecompactBackstrip(strat::StratData, nsims, res)
                 # maximum(Y_corr[:,i]) = total depth of column at time step i
                 ρ_bulk_column[i] = sum(view(m_bulk,:,i))/maximum(view(Y,:,i))
                 # Tectonic subsidence for all timesteps; record results from all simulations
-                Sₜ_km[i,sim] = Y[model_nlayer+2-i,i]*((ρm-ρ_bulk_column[i])/(ρm-ρw))
+                Sₜ[i,sim] = Y[model_nlayer+2-i,i]*((ρm-ρ_bulk_column[i])/(ρm-ρw))
             end
 
             mod(sim,pgrs_interval)==0 && update!(pgrs, sim)
@@ -370,9 +370,6 @@ function DecompactBackstrip(strat::StratData, nsims, res)
         update!(pgrs,nsims)
 
         # Calculate summary statistics (mean and standard deviation)
-        Sₜ = Sₜ_km .* 1000
-        # reverse!(Sₜ, dims=1)
-        # Sₜ .- Sₜ[findfirst(active), :]'
         Sμ = nanmean(Sₜ, dim=2)
         Sσ = nanstd(Sₜ, dim=2)
 

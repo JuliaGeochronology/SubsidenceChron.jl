@@ -1,4 +1,4 @@
 layer,Thickness,Lithology
-3,1,Shale
-2,0.6,Sandstone
-1,0.4,Limestone
+3,1000,Shale
+2,600,Sandstone
+1,400,Limestone
