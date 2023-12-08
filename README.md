@@ -29,25 +29,25 @@ using StatGeochem, Distributions, Plots, Statistics, StatsBase
 ### Enter stratigraphic information
 Here we use a synthetic stratigraphic succession as an example. This synthetic succession consists of, from the youngest to the oldest:
 
-| Thickness (km) |  Lithology  | Water depth                         |
-|:--------------:|:-----------:|:-----------------------------------:|
-| 1              | Shale       | Between storm wave base and fair weather wave base|
-| 0.6            | Sandstone   | Above fair weather wave base        |
-| 0.4            | Limestone   | Above fair weather wave base        |
+| Thickness (m) |  Lithology  | Water depth                         |
+|:-------------:|:-----------:|:-----------------------------------:|
+| 1000          | Shale       | Between storm wave base and fair weather wave base|
+| 600           | Sandstone   | Above fair weather wave base        |
+| 400           | Limestone   | Above fair weather wave base        |
 
 Stratigraphic information and (optional) water depth information should be stored in `.csv` files following the same format as those provided in the [examples/](examples/) folder. For example, the stratigraphic information `.csv` file should look like [examples/Test_DB_PerfectSubsidence.csv](examples/Test_DB_PerfectSubsidence.csv):
 ```
 layer,Thickness,Lithology
-3,1,Shale
-2,0.6,Sandstone
-1,0.4,Limestone
+3,1000,Shale
+2,600,Sandstone
+1,400,Limestone
 ```
 while the water depth information `.csv` file should look like [examples/PerfectSubsidence_SequenceStrat.csv](examples/PerfectSubsidence_SequenceStrat.csv):
 ```
 layer,Thickness,Type,Notes
-3,1,SWB,
-2,0.6,FWWB,
-1,0.4,FWWB,
+3,1000,SWB,
+2,600,FWWB,
+1,400,FWWB,
 ```
 Below is a list of currently acceptable lithology and water depth identifiers:
 
@@ -104,8 +104,8 @@ After importing data, the user need to configure the MC model (i.e. specify the 
 # # # # # # # # # # Configure MC model here! # # # # # # # # # #
 # Number of MC simulations
 nsims = 1000 
-# Resolution for model horizons (in km)
-res = 0.02
+# Resolution for model horizons (in meters)
+res = 20.0
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 # Run the decompaction and backstripping MC model
@@ -160,11 +160,11 @@ To run the MCMC model, the user should first configure the model by setting appr
 # Configure the stratigraphic MCMC model
 config = NewStratAgeModelConfiguration()
 # If you in doubt, you can probably leave these parameters as-is
-config.resolution = res*1000 # Same units as sample height. Smaller is slower!
+config.resolution = res # Same units as sample height. Smaller is slower!
 config.bounding = 1.0 # how far away do we place runaway bounds, as a fraction of total section height. Larger is slower.
 (bottom, top) = extrema(smpl.Height)
 npoints_approx = round(Int,length(bottom:config.resolution:top) * (1 + 2*config.bounding))
-config.nsteps = 5000 # Number of steps to run in distribution MCMC 
+config.nsteps = 50000 # Number of steps to run in distribution MCMC 
 config.burnin = 10000*npoints_approx # Number to discard 
 config.sieve = round(Int,npoints_approx) # Record one out of every nsieve steps
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
