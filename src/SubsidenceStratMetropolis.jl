@@ -50,20 +50,20 @@ end
 
 function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConfiguration, therm::ThermalSubsidenceParameters, subsidence_strat_heights, Sμ, Sσ, beta_ip, t0_ip;
         subsidencebottom=minimum(smpl.Height),
-        subsidencetop=maximum(smpl.Height)
+        subsidencetop=maximum(smpl.Height),
+        y_lithosphere= 125000, # Meters!
+        τ = 50 #Myr
     )
 
     # Run stratigraphic MCMC model
     print("Generating stratigraphic age-depth model...\n")
 
     # Define thermal subsidence model parameters
-        y_litho= 125000 # Meters!
         ρ_mantle = 3330
         ρ_water = 1000
         αᵥ = 3.28*10^(-5)
         T_mantle = 1333
-        τ = 50 #Myr
-        E₀ = (4*y_litho*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water)) # Also meters!
+        E₀ = (4*y_lithosphere*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water)) # Also meters!
 
     # Stratigraphic age constraints
         Age = copy(smpl.Age)::Array{Float64,1}
