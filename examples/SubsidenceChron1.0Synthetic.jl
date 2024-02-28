@@ -38,7 +38,7 @@
 
     # Run the decompaction and backstripping MC model
     # (wd input is optional)
-    @time (Sₜ, Sμ, Sσ, subsidence_strat_heights) = DecompactBackstrip(strat, wd, nsims, res)
+    @time (Sₜ, Sμ, Sσ, subsidence_strat_depths) = DecompactBackstrip(strat, wd, nsims, res)
 
     #= Code for storing and reading decompaction + backstripping results - will be useful when testing the age-depth modeling part of the model
     # Store results
@@ -55,7 +55,7 @@
 
     # Plot results - tectonic subsidence in comparison with present day stratigraphic heights
     p1 = plot(Sμ, alpha = 1, yflip = true, xflip = true, label = "Tectonic subsidence", color = "blue")
-    #plot!(p1, reverse(subsidence_strat_heights), yflip = true, label = "Present-day thickness", color = "red")
+    #plot!(p1, reverse(subsidence_strat_depths), yflip = true, label = "Present-day thickness", color = "red")
     plot!(p1, Sₜ[:,2:end], alpha = 0.01, label = "", yflip = true, color = "blue", fg_color_legend=:white)
     savefig(p1, "Test_DecompactBackstrip_higherres.pdf")
 
@@ -111,7 +111,7 @@
 
 ## --- Option a: Stratigraphic MCMC model without hiatus
     #Run the model
-    (subsmdl, agedist, lldist, beta_t0dist, lldist_burnin) = SubsidenceStratMetropolis(smpl, config, therm, subsidence_strat_heights, Sμ, Sσ, 0.05, 10)
+    (subsmdl, agedist, lldist, beta_t0dist, lldist_burnin) = SubsidenceStratMetropolis(smpl, config, therm, subsidence_strat_depths, Sμ, Sσ, 0.05, 10)
 
     #= Code for storing and reading age-depth model results
     # Store and read results

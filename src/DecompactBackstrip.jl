@@ -116,8 +116,8 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
         lithology_inputs = strat.Lithology
         height_inputs = cumsum([0; strat.Thickness])
         nlayer_input = length(strat.Thickness)
-        subsidence_strat_heights = [0:res:maximum(height_inputs);]
-        model_nlayer = length(subsidence_strat_heights)-1
+        subsidence_strat_depths = [0:res:maximum(height_inputs);]
+        model_nlayer = length(subsidence_strat_depths)-1
 
     # Allocate parameters as distributions; each element/distribution represents a layer
         # c: porosity depth coefficient, ϕ₀: surface porosity, ρg: sediment grain density
@@ -168,7 +168,7 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
             # Propagate these selections to every model layers; all model layers from the same input layer get the same c and ϕ₀ values
             @inbounds for i = 1:nlayer_input
                 for j = 1:model_nlayer
-                    if subsidence_strat_heights[j+1]>height_inputs[i]
+                    if subsidence_strat_depths[j+1]>height_inputs[i]
                         c_highres[j]=c[i]
                         ϕ₀_highres[j]=ϕ₀[i]
                         ρg_highres[j]=ρg[i]
@@ -177,7 +177,7 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
             end
 
             # Fill the first column with modern observed values (present-day depths)
-            Y[:,1] .= subsidence_strat_heights
+            Y[:,1] .= subsidence_strat_depths
             # Fill the first row with zeros
             Y[1,:] .= 0
 
@@ -186,7 +186,7 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
             # j = layer number, which runs from i to layer_count b/c the ith column begins with y₁' of layer i
             for i = 2:model_nlayer
                 for j = i:model_nlayer
-                    decompact!(view(Y,:,i), subsidence_strat_heights, ϕ₀_highres[j], c_highres[j], j, i)
+                    decompact!(view(Y,:,i), subsidence_strat_depths, ϕ₀_highres[j], c_highres[j], j, i)
                 end
             end
 
@@ -220,7 +220,7 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
             # Propagate these selections to every model layers; all model layers from the same input layer get the same paleo water depth
             for i = 1:wd_nlayer_input
                 for j = 1:model_nlayer+1
-                    if subsidence_strat_heights[j]>wd_height_inputs[i]
+                    if subsidence_strat_depths[j]>wd_height_inputs[i]
                         paleo_wd_highres[j]=paleo_wd[i]
                     end
                 end
@@ -259,7 +259,7 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
         Sμ = nanmean(Sₜ, dim=2)
         Sσ = nanstd(Sₜ, dim=2)
 
-    return Sₜ, Sμ, Sσ, subsidence_strat_heights
+    return Sₜ, Sμ, Sσ, subsidence_strat_depths
 end
 
 # Decompaction and backstripping (Method 2: without water depth inputs)
@@ -269,8 +269,8 @@ function DecompactBackstrip(strat::StratData, nsims, res)
         lithology_inputs = strat.Lithology
         height_inputs = cumsum([0; strat.Thickness])
         nlayer_input = length(strat.Thickness)
-        subsidence_strat_heights = [0:res:maximum(height_inputs);]
-        model_nlayer = length(subsidence_strat_heights)-1
+        subsidence_strat_depths = [0:res:maximum(height_inputs);]
+        model_nlayer = length(subsidence_strat_depths)-1
 
     # Allocate parameters as distributions; each element/distribution represents a layer
         # c: porosity depth coefficient, ϕ₀: surface porosity, ρg: sediment grain density
@@ -318,7 +318,7 @@ function DecompactBackstrip(strat::StratData, nsims, res)
             # Propagate these selections to every model layers; all model layers from the same input layer get the same c and ϕ₀ values
             @inbounds for i = 1:nlayer_input
                 for j = 1:model_nlayer
-                    if subsidence_strat_heights[j+1]>height_inputs[i]
+                    if subsidence_strat_depths[j+1]>height_inputs[i]
                         c_highres[j]=c[i]
                         ϕ₀_highres[j]=ϕ₀[i]
                         ρg_highres[j]=ρg[i]
@@ -327,7 +327,7 @@ function DecompactBackstrip(strat::StratData, nsims, res)
             end
 
             # Fill the first column with modern observed values (present-day depths)
-            Y[:,1] .= subsidence_strat_heights
+            Y[:,1] .= subsidence_strat_depths
             # Fill the first row with zeros
             Y[1,:] .= 0
 
@@ -336,7 +336,7 @@ function DecompactBackstrip(strat::StratData, nsims, res)
             # j = layer number, which runs from i to layer_count b/c the ith column begins with y₁' of layer i
             for i = 2:model_nlayer
                 for j = i:model_nlayer
-                    decompact!(view(Y,:,i), subsidence_strat_heights, ϕ₀_highres[j], c_highres[j], j, i)
+                    decompact!(view(Y,:,i), subsidence_strat_depths, ϕ₀_highres[j], c_highres[j], j, i)
                 end
             end
 
@@ -373,5 +373,5 @@ function DecompactBackstrip(strat::StratData, nsims, res)
         Sμ = nanmean(Sₜ, dim=2)
         Sσ = nanstd(Sₜ, dim=2)
 
-    return Sₜ, Sμ, Sσ, subsidence_strat_heights
+    return Sₜ, Sμ, Sσ, subsidence_strat_depths
 end

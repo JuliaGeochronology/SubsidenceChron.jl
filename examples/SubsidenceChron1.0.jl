@@ -37,7 +37,7 @@
 
     # Run the decompaction and backstripping MC model
     # (wd input is optional)
-    @time (Sₜ, Sμ, Sσ, subsidence_strat_heights) = DecompactBackstrip(strat, wd, nsims, res)
+    @time (Sₜ, Sμ, Sσ, subsidence_strat_depths) = DecompactBackstrip(strat, wd, nsims, res)
 
     #= Code for storing and reading decompaction + backstripping results - will be useful when testing the age-depth modeling part of the model
     # Store results
@@ -54,7 +54,7 @@
 
     # Plot results - tectonic subsidence in comparison with present day stratigraphic heights
     p1 = plot(Sμ, alpha = 1, yflip = true, xflip = true, label = "Tectonic subsidence", color = "blue")
-    #plot!(p1, reverse(subsidence_strat_heights), yflip = true, label = "Present-day thickness", color = "red")
+    #plot!(p1, reverse(subsidence_strat_depths), yflip = true, label = "Present-day thickness", color = "red")
     plot!(p1, Sₜ[:,2:end], alpha = 0.01, label = "", yflip = true, color = "blue", fg_color_legend=:white)
     savefig(p1, "DecompactBackstrip_higherres.pdf")
 
@@ -114,7 +114,7 @@
 
 ## --- Option a: Stratigraphic MCMC model without hiatus
     #Run the model
-    (subsmdl, agedist, lldist, beta_t0dist, lldist_burnin) = SubsidenceStratMetropolis(smpl, config, therm, subsidence_strat_heights, Sμ, Sσ_corr, Beta_sigma/10, T0_sigma/10)
+    (subsmdl, agedist, lldist, beta_t0dist, lldist_burnin) = SubsidenceStratMetropolis(smpl, config, therm, subsidence_strat_depths, Sμ, Sσ_corr, Beta_sigma/10, T0_sigma/10)
 
     #= Code for storing and reading age-depth model results
     # Store and read results
@@ -188,7 +188,7 @@
     # If target horizon is not in the range of the age-depth model...
     #Calculate ages for target horizons based on the ideal subsidence curve
     target_height = [0, 0.444, 0.863, 1.125, 1.962, 2.082, 2.137]
-    target_index = findclosest(target_height, subsidence_strat_heights)
+    target_index = findclosest(target_height, subsidence_strat_depths)
     target_subs = copy(Sₜ[target_index,:])
     beta_t0dist_filter = Array{Float64,2}(undef, 2, config.nsteps)
     idx = 1
@@ -375,7 +375,7 @@
     hiatus_height = -500
 
     #Run the model with the additional term of "hiatus_height"
-    (subsmdl, agedist, lldist, beta_t0dist, lldist_burnin) = SubsidenceStratMetropolis(smpl, config, therm, subsidence_strat_heights, Sμ, Sσ, hiatus_height, 0.05, -5)
+    (subsmdl, agedist, lldist, beta_t0dist, lldist_burnin) = SubsidenceStratMetropolis(smpl, config, therm, subsidence_strat_depths, Sμ, Sσ, hiatus_height, 0.05, -5)
 
     # Plot results (mean and 95% confidence interval for both model and data)
     hdl_hiatus = plot([subsmdl.Age_025CI; reverse(subsmdl.Age_975CI)],[subsmdl.Height; reverse(subsmdl.Height)], fill=(round(Int,minimum(subsmdl.Height)),0.5,:blue), label="model")
@@ -404,7 +404,7 @@
     hiatus.Duration_sigma = [  20.0]
 
     # Run the model. Note the additional `hiatus` arguments
-    @time (subsmdl, agedist, hiatusdist, lldist, beta_t0dist) = StratMetropolis(smpl, config, therm, subsidence_strat_heights, Sμ, Sσ, hiatus); sleep(0.5)
+    @time (subsmdl, agedist, hiatusdist, lldist, beta_t0dist) = StratMetropolis(smpl, config, therm, subsidence_strat_depths, Sμ, Sσ, hiatus); sleep(0.5)
 
     # Plot results (mean and 95% confidence interval for both model and data)
     hdl = plot([subsmdl.Age_025CI; reverse(subsmdl.Age_975CI)],[subsmdl.Height; reverse(subsmdl.Height)], fill=(minimum(subsmdl.Height),0.5,:blue), label="model")
@@ -418,13 +418,13 @@
 
     curve_ages = similar(Sμ)
     curve_ages = τ.*log.(1 .-((Sμ.*pi)./(E₀*beta*sin(pi/beta)))).+t0
-    subsidence_strat_heights_m = copy(-subsidence_strat_heights[2:end]).*1000
+    subsidence_strat_depths_m = copy(-subsidence_strat_depths[2:end]).*1000
 
-    hiatus_age_depth_curve = plot([curve_1_ages; reverse(curve_4_ages)], [subsidence_strat_heights_m; reverse(subsidence_strat_heights_m)], fill = (round(Int,minimum(mdl_height)),0.5,:white), label = "Interpolated model results - 2σ error envelope")
+    hiatus_age_depth_curve = plot([curve_1_ages; reverse(curve_4_ages)], [subsidence_strat_depths_m; reverse(subsidence_strat_depths_m)], fill = (round(Int,minimum(mdl_height)),0.5,:white), label = "Interpolated model results - 2σ error envelope")
     plot!(Age[2:4], Height[2:4], xerror=Age_sigma[2:4],label="Age data",seriestype=:scatter,color=:black, legend =:bottomleft, grid = false, dpi = 300)
-    plot!(hiatus_age_depth_curve, curve_2_ages, subsidence_strat_heights_m, linecolor =:red, label = "lowest beta and t0 at 975CI")
-    plot!(hiatus_age_depth_curve, curve_3_ages, subsidence_strat_heights_m, linecolor =:orange, label = "beta at 975CI and t0 at 025CI")
-    plot!(hiatus_age_depth_curve, curve_4_ages, subsidence_strat_heights_m, linecolor =:yellow, label = "beta at 975CI and t0 at 975CI")
+    plot!(hiatus_age_depth_curve, curve_2_ages, subsidence_strat_depths_m, linecolor =:red, label = "lowest beta and t0 at 975CI")
+    plot!(hiatus_age_depth_curve, curve_3_ages, subsidence_strat_depths_m, linecolor =:orange, label = "beta at 975CI and t0 at 025CI")
+    plot!(hiatus_age_depth_curve, curve_4_ages, subsidence_strat_depths_m, linecolor =:yellow, label = "beta at 975CI and t0 at 975CI")
     #plot!(age_depth_curve, mdl_age, mdl_height, linecolor=:blue, label="", fg_color_legend=:white)
 
     Sᵣ = reverse(Sμ)

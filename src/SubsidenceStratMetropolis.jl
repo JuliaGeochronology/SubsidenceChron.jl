@@ -48,7 +48,7 @@ function reversecopyat!(dest, t, src)
     return dest
 end
 
-function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConfiguration, therm::ThermalSubsidenceParameters, subsidence_strat_heights, Sμ, Sσ, beta_ip, t0_ip;
+function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConfiguration, therm::ThermalSubsidenceParameters, subsidence_strat_depths, Sμ, Sσ, beta_ip, t0_ip;
         subsidencebottom=minimum(smpl.Height),
         subsidencetop=maximum(smpl.Height),
         y_lithosphere= 125000, # Meters!
@@ -159,10 +159,10 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             1.
         end
         equivalent_strat_height = if all(x->!(x>0), smpl.Height)
-            -subsidence_strat_heights*heightconversion
+            -subsidence_strat_depths*heightconversion
         else
-            sectionthickness = maximum(subsidence_strat_heights)*heightconversion
-            sectionthickness .- subsidence_strat_heights*heightconversion
+            sectionthickness = maximum(subsidence_strat_depths)*heightconversion
+            sectionthickness .- subsidence_strat_depths*heightconversion
         end
         # Find the subsidence model horizons that match each age model horizon within the range where subsidence modelling is active
         closest_subsidence = findclosest(model_heights[subsidence_height_t], equivalent_strat_height)

@@ -30,10 +30,10 @@ strat_test.Lithology = ["Shale", "Sandstone", "Limestone"]
 strat_test.Thickness .= [1000, 600, 400]
 nsims_test = 5000
 res_test = 20.0 # meters
-(Sₜ_test, Sμ_test, Sσ_test, model_strat_heights_test) = SubsidenceChron.DecompactBackstrip(strat_test, nsims_test, res_test)
+(Sₜ_test, Sμ_test, Sσ_test, subsidence_strat_depths_test) = SubsidenceChron.DecompactBackstrip(strat_test, nsims_test, res_test)
 
-model_strat_heights_target = 0:res_test:2000
-@test isapprox(model_strat_heights_test, model_strat_heights_target, atol=0.0001)
+subsidence_strat_depths_target = 0:res_test:2000
+@test isapprox(subsidence_strat_depths_test, subsidence_strat_depths_target, atol=0.0001)
 
 Sμ_target = [1098.927, 1093.926, 1088.810, 1083.576, 1078.223, 1072.751, 1067.158, 1061.443, 1055.603, 1049.638, 1043.546, 1037.324, 1030.971, 1024.484, 1017.862, 1011.102, 1004.200, 997.155, 989.963, 982.621, 975.125, 967.473, 959.658, 951.678, 943.528, 935.202, 926.695, 918.001, 909.114, 900.027, 890.731, 881.218, 871.480, 861.506, 851.284, 840.802, 830.046, 819.000, 807.646, 795.964, 783.930, 771.517, 758.693, 745.420, 731.652, 717.332, 702.390, 686.730, 670.225, 652.686, 633.802, 623.305, 612.731, 602.079, 591.350, 580.543, 569.657, 558.691, 547.646, 536.520, 525.313, 514.025, 502.655, 491.203, 479.668, 468.051, 456.349, 444.564, 432.694, 420.740, 408.701, 396.576, 384.367, 372.071, 359.689, 347.222, 334.667, 322.026, 309.298, 296.481, 283.577, 271.977, 260.189, 248.205, 236.016, 223.613, 210.984, 198.119, 185.005, 171.627, 157.970, 144.015, 129.744, 115.131, 100.150, 84.768, 68.948, 52.638, 35.778, 18.277, 0.000]
 @test all(isapprox.(Sμ_target, Sμ_test, rtol=0.03))
@@ -89,7 +89,7 @@ config.nsteps = 40000  # Number of steps to run in distribution MCMC
 config.burnin = 20000*npoints_approx # Number to discard
 config.sieve = round(Int,npoints_approx) # Record one out of every nsieve steps
 
-@time (subsmdl_test, agedist_test, lldist_test, beta_t0dist_test, lldist_burnin_test) = SubsidenceStratMetropolis(smpl, config, therm, model_strat_heights_test[1:end-1], Sμ_test[1:end-1], Sσ_test[1:end-1], 0.05, 10)
+@time (subsmdl_test, agedist_test, lldist_test, beta_t0dist_test, lldist_burnin_test) = SubsidenceStratMetropolis(smpl, config, therm, subsidence_strat_depths_test[1:end-1], Sμ_test[1:end-1], Sσ_test[1:end-1], 0.05, 10)
 
 # Test that results match expectation, within some tolerance
 @test subsmdl_test.Age isa Vector{Float64}
@@ -118,7 +118,7 @@ expected_mean_ages = [398.51, 397.72, 396.96, 396.19, 395.43, 394.67, 393.92, 39
 @test isapprox(only(subsmdl_test.T0_975CI), 414.28186494452217, atol=10)
 
 ## Specify subsidence bottom and top
-@time (subsmdl_test, agedist_test, lldist_test, beta_t0dist_test, lldist_burnin_test) = SubsidenceStratMetropolis(smpl, config, therm, model_strat_heights_test[1:end-1], Sμ_test[1:end-1], Sσ_test[1:end-1], 0.05, 10, subsidencebottom=-1000, subsidencetop=-500)
+@time (subsmdl_test, agedist_test, lldist_test, beta_t0dist_test, lldist_burnin_test) = SubsidenceStratMetropolis(smpl, config, therm, subsidence_strat_depths_test[1:end-1], Sμ_test[1:end-1], Sσ_test[1:end-1], 0.05, 10, subsidencebottom=-1000, subsidencetop=-500)
 
 # Test that results match expectation, within some tolerance
 @test subsmdl_test.Age isa Vector{Float64}
@@ -160,7 +160,7 @@ smpl.Age_Sidedness .= zeros(nSamples) # Sidedness (zeros by default: geochron co
 smpl.Age_Unit = "Ma" # Unit of measurement for ages
 smpl.Height_Unit = "m"
 
-@time (subsmdl_test, agedist_test, lldist_test, beta_t0dist_test, lldist_burnin_test) = SubsidenceStratMetropolis(smpl, config, therm, model_strat_heights_test[1:end-1], Sμ_test[1:end-1], Sσ_test[1:end-1], 0.05, 10, subsidencebottom=1000, subsidencetop=1500)
+@time (subsmdl_test, agedist_test, lldist_test, beta_t0dist_test, lldist_burnin_test) = SubsidenceStratMetropolis(smpl, config, therm, subsidence_strat_depths_test[1:end-1], Sμ_test[1:end-1], Sσ_test[1:end-1], 0.05, 10, subsidencebottom=1000, subsidencetop=1500)
 
 # Test that results match expectation, within some tolerance
 @test subsmdl_test.Age isa Vector{Float64}
