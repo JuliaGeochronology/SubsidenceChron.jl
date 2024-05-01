@@ -52,7 +52,6 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         subsidencebottom=minimum(smpl.Height),
         subsidencetop=maximum(smpl.Height),
         y_lithosphere= 125000, # Meters!
-        τ = 50 #Myr
     )
 
     # Run stratigraphic MCMC model
@@ -63,6 +62,8 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         ρ_water = 1000
         αᵥ = 3.28*10^(-5)
         T_mantle = 1333
+        κ = 0.00804/100^2*60*60*24*365.25 # m^2/yr
+        τ = y_lithosphere^2/(pi^2*κ*1e6) # Myr
         E₀ = (4*y_lithosphere*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water)) # Also meters!
 
     # Stratigraphic age constraints
