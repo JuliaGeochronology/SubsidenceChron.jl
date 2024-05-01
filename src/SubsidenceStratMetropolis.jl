@@ -51,7 +51,7 @@ end
 function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConfiguration, therm::ThermalSubsidenceParameters, subsidence_strat_depths, Sμ, Sσ, beta_ip, t0_ip;
         subsidencebottom=minimum(smpl.Height),
         subsidencetop=maximum(smpl.Height),
-        y_lithosphere= 125000, # Meters!
+        lithosphere = Normal(125000, 100), # Meters!
     )
 
     # Run stratigraphic MCMC model
@@ -63,8 +63,9 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         αᵥ = 3.28*10^(-5)
         T_mantle = 1333
         κ = 0.00804/100^2*60*60*24*365.25 # m^2/yr
-        τ = y_lithosphere^2/(pi^2*κ*1e6) # Myr
-        E₀ = (4*y_lithosphere*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water)) # Also meters!
+        a = aₚ = rand(lithosphere)
+        τ = a^2/(pi^2*κ*1e6) # Myr
+        E₀ = (4*a*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water)) # Also meters!
 
     # Stratigraphic age constraints
         Age = copy(smpl.Age)::Array{Float64,1}
@@ -175,6 +176,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         ts_Sσ = Sσ[closest_subsidence]
 
         # Add subsidence likelihood to initial proposal ll
+        ll += normpdf_ll(mean(lithosphere), std(lithosphere), a)
         ll += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_ages, subs_parameters)/length(ts_Sμ)
 
     # Preallocate variables for MCMC proposals
@@ -188,7 +190,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
 
     # Run burnin
         # acceptancedist = fill(false,burnin)
-        lldist_burnin = Array{Float64}(undef,burnin÷1000)
+        lldist_burnin = Array{Float64}(undef,burnin÷sieve)
 
         print("Burn-in: ", burnin, " steps\n")
         pgrs = Progress(burnin, desc="Burn-in...")
@@ -204,6 +206,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             for i in eachindex(subs_parametersₚ, ideal_subs_parameters_sigma)
                 subs_parametersₚ[i] += randn() * ideal_subs_parameters_sigma[i]
             end
+            aₚ = a .+ randn() * std(lithosphere)
 
             if rand() < 0.1
                 # Adjust heights
@@ -251,19 +254,23 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
             copyat!(ts_model_agesₚ, subsidence_height_t, model_agesₚ)
+            τ = aₚ^2/(pi^2*κ*1e6) # Myr
+            E₀ = (4*aₚ*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water)) # Also meters!
+            llₚ += normpdf_ll(mean(lithosphere), std(lithosphere), aₚ)
             llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)/length(ts_Sμ)
 
             # Accept or reject proposal based on likelihood
             if log(rand(Float64)) < (llₚ - ll)
                 ll = llₚ
+                a = aₚ
                 copyto!(model_ages, model_agesₚ)
                 copyto!(closest, closestₚ)
                 copyto!(sample_height, sample_heightₚ)
                 copyto!(subs_parameters, subs_parametersₚ)
                 # acceptancedist[i] = true
             end
-            if mod(n,1000) == 0
-                lldist_burnin[n÷1000] = ll
+            if mod(n,sieve) == 0
+                lldist_burnin[n÷sieve] = ll
             end
 
             # Update progress meter every `pgrs_interval` steps
@@ -273,8 +280,9 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
 
     # Run Markov Chain Monte Carlo
         print("Collecting sieved stationary distribution: ", nsteps*sieve, " steps\n")
-        agedist = Array{Float64}(undef,npoints,nsteps)
         lldist = Array{Float64}(undef,nsteps)
+        adist = Array{Float64}(undef,nsteps)
+        agedist = Array{Float64}(undef,npoints,nsteps)
         beta_t0dist = Array{Float64}(undef,2,nsteps)
 
     # Run the model
@@ -291,6 +299,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             for i in eachindex(subs_parametersₚ, ideal_subs_parameters_sigma)
                 subs_parametersₚ[i] += randn() * ideal_subs_parameters_sigma[i]
             end
+            aₚ = a .+ randn() * std(lithosphere)
 
             if rand() < 0.1
                 # Adjust heights
@@ -338,11 +347,15 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
             copyat!(ts_model_agesₚ, subsidence_height_t, model_agesₚ)
+            τ = aₚ^2/(pi^2*κ*1e6) # Myr
+            E₀ = (4*aₚ*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water)) # Also meters!
+            llₚ += normpdf_ll(mean(lithosphere), std(lithosphere), aₚ)
             llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)/length(ts_Sμ)
 
             # Accept or reject proposal based on likelihood
             if log(rand(Float64)) < (llₚ - ll)
                 ll = llₚ
+                a = aₚ
                 copyto!(model_ages, model_agesₚ)
                 copyto!(closest, closestₚ)
                 copyto!(sample_height, sample_heightₚ)
@@ -351,7 +364,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
 
             # Record sieved results
             if mod(n,sieve) == 0
-                lldist[n÷sieve] = ll
+                adist[n÷sieve] = a
                 agedist[:,n÷sieve] .= model_ages
                 beta_t0dist[:,n÷sieve] .= subs_parameters
                 #predicted_ages[n÷sieve] = beta_t0dist[2]+τ*log(1-(Sμ[?]*pi)/(E₀*beta_t0dist[1]*sin(pi/beta_t0dist[2])))
@@ -382,7 +395,12 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             nanstd(t0dist,dim=1), # Standard deviation
             nanmedian(t0dist,dim=1), # Median T0
             nanpctile(t0dist,2.5,dim=1), # 2.5th percentile
-            nanpctile(t0dist,97.5,dim=1) # 97.5th percentile
+            nanpctile(t0dist,97.5,dim=1), # 97.5th percentile
+            nanmean(adist,dim=1), # Mean lithospheric thickness
+            nanstd(adist,dim=1), # Standard deviation
+            nanmedian(adist,dim=1), # Median lithospheric thickness
+            nanpctile(adist,2.5,dim=1), # 2.5th percentile
+            nanpctile(adist,97.5,dim=1), # 97.5th percentile
         )
     return subsmdl, agedist, lldist, beta_t0dist, lldist_burnin
 end

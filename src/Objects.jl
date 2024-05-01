@@ -52,6 +52,11 @@
         T0_Median::Array{Float64,1}
         T0_025CI::Array{Float64,1}
         T0_975CI::Array{Float64,1}
+        lithosphere::Array{Float64,1}
+        lithosphere_sigma::Array{Float64,1}
+        lithosphere_Median::Array{Float64,1}
+        lithosphere_025CI::Array{Float64,1}
+        lithosphere_975CI::Array{Float64,1}
     end
 
 # For backwards compatibility
