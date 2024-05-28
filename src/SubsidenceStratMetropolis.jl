@@ -105,7 +105,11 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
         # Start with a linear fit as an initial proposal
         # Only include two-sided age constraints in fitting
         t = Age_Sidedness .== 0
-        (a,b) = hcat(fill!(similar(Height[t]), 1), Height[t]) \ Age[t]
+        if iszero(t) == true
+            (a,b) = hcat(fill!(similar(Height), 1), Height) \ Age
+        else
+            (a,b) = hcat(fill!(similar(Height[t]), 1), Height[t]) \ Age[t]
+        end
         model_ages = a .+ b .* collect(model_heights)
 
         # Calculate log likelihood of initial proposal
