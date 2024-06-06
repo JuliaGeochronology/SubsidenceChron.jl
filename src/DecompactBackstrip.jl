@@ -1,92 +1,122 @@
 ## --- Subsidence parameters
+"""
+```julia
+subsidenceparams(lithology_string::AbstractString)
+```
 
-function subsidenceparams(lithology::AbstractString)
-    # c (porosity-depth coefficient [km^-1]) has a lower bound of 0, 
-    # since porosity at depth should not be greater than porosity at surface
-    # ϕ₀ [unitless] has a lower bound of 0 and an upper bound of 1, definitionally
-    # Density [kg/m^3] at zero porosity (i.e., of solid component only)
-    if lithology == "Shale"
+Return a tuple of the porosity-depth coefficient [1/m], surface porosity, and solid density of the given lithology.
+Supported lithologies include:
+```
+shale
+black shale
+siltstone
+shaly sandstone
+sandstone
+chalk
+limestone
+dolostone
+anhydrite
+quartzite
+diamictite
+conglomerate
+breccia
+diabase
+basalt
+andesite
+rhyolite
+tuff
+```
+"""
+function subsidenceparams(lithology_string::AbstractString)
+    # Turn string into lowercase symbol
+    lithology = Symbol(lowercase(lithology_string))
+
+    # Look up properties:
+    #   Porosity-depth coefficient c [km^-1] has a lower bound of 0, since porosity should not decrease with depth
+    #   Initial porosity ϕ₀ [unitless] has a lower bound of 0 and an upper bound of 1, definitionally
+    #   Density ρg [kg/m^3] reflects that of the solid only (i.e., density at zero porosity)
+    if lithology === :shale
         # From Allen & Allen 2013, Table 9.1
         c_dist = truncated(Normal(0.51, 0.15), 0, Inf) #
         ϕ₀_dist = truncated(Normal(0.63, 0.15), 0, 1)
         ρg = 2720
-    elseif lithology == "Black Shale"
+    elseif lithology === Symbol("black shale")
         # As normal shale, but more compressible and lower solid density
         c_dist = truncated(Normal(0.60, 0.15), 0, Inf) #
         ϕ₀_dist = truncated(Normal(0.63, 0.15), 0, 1)
         ρg = 2400
-    elseif lithology == "Siltstone"
+    elseif lithology === :siltstone
         c_dist = truncated(Normal(0.39, 0.1), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.56, 0.1), 0, 1)
         ρg = 2650
-    elseif lithology == "Shaly sandstone"
+    elseif lithology === Symbol("shaly sandstone")
         # From Allen & Allen 2013, Table 9.1
         c_dist = truncated(Normal(0.40, 0.1), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.56, 0.1), 0, 1)
         ρg = 2650
-    elseif lithology == "Sandstone"
+    elseif lithology === :sandstone
         # From Allen & Allen 2013, Table 9.1
         c_dist = truncated(Normal(0.27, 0.1), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.49, 0.1), 0, 1)
         ρg = 2650
-    elseif lithology == "Chalk"
+    elseif lithology === :chalk
         # From Allen & Allen 2013, Table 9.1
         c_dist = truncated(Normal(0.71, 0.15), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.7, 0.15), 0, 1)
         ρg = 2710
-    elseif lithology == "Limestone"
+    elseif lithology === :limestone
         c_dist = truncated(Normal(0.6, 0.2), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.4, 0.17), 0, 1)
         ρg = 2710
-    elseif lithology == "Dolostone"
+    elseif lithology === :dolostone
         c_dist = truncated(Normal(0.6, 0.2), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.2, 0.1), 0, 1)
         ρg = 2870
-    elseif lithology == "Anhydrite"
+    elseif lithology === :anhydrite
         c_dist = truncated(Normal(0.2, 0.1), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.05, 0.05), 0, 1)
         ρg = 2960
-    elseif lithology == "Quartzite"
+    elseif lithology === :quartzite
         # As sandstone, but lower porosity
         c_dist = truncated(Normal(0.27, 0.1), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.15, 0.1), 0, 1)
         ρg = 2650
-    elseif lithology == "Diamictite"
+    elseif lithology === :diamictite
         c_dist = truncated(Normal(0.51, 0.15), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.63, 0.15), 0, 1)
         ρg = 2720
-    elseif lithology == "Conglomerate"
+    elseif lithology === :conglomerate
         c_dist = truncated(Normal(0.51, 0.15), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.63, 0.15), 0, 1)
         ρg = 2720
-    elseif lithology == "Breccia"
+    elseif lithology === :breccia
         c_dist = truncated(Normal(0.51, 0.15), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.63, 0.15), 0, 1)
         ρg = 2720
-    elseif lithology == "Diabase"
+    elseif lithology === :diabase
         # As basalt, but lower initial porosity
         c_dist = truncated(Normal(0.5, 0.2), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.03, 0.05), 0, 1)
         ρg = 2960
-    elseif lithology == "Basalt"
+    elseif lithology === :basalt
         c_dist = truncated(Normal(0.5, 0.2), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.095, 0.1), 0, 1)
         ρg = 2960
-    elseif lithology == "Andesite"
+    elseif lithology === :andesite
         c_dist = truncated(Normal(0.5, 0.2), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.095, 0.1), 0, 1)
         ρg = 2650
-    elseif lithology == "Rhyolite"
+    elseif lithology === :rhyolite
         c_dist = truncated(Normal(0.5, 0.2), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.275, 0.14), 0, 1)
         ρg = 2510
-    elseif lithology == "Tuff"
+    elseif lithology === :tuff
         # As Rhyolite, but more porous and compressible
         c_dist = truncated(Normal(0.65, 0.3), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.35, 0.2), 0, 1)
         ρg = 2550
     else # fallback, if unknown
-        @warn "lithology $lithology not recognized, using default porosity parameters"
+        @warn "lithology $lithology_string not recognized, using default porosity parameters"
         c_dist = truncated(Normal(0.5, 0.3), 0, Inf)
         ϕ₀_dist = Uniform(0, 1)
         ρg = 2700
