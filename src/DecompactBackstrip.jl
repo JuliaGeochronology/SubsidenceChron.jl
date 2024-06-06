@@ -1,21 +1,36 @@
 ## --- Subsidence parameters
 
 function subsidenceparams(lithology::AbstractString)
+    # c (porosity-depth coefficient [km^-1]) has a lower bound of 0, 
+    # since porosity at depth should not be greater than porosity at surface
+    # ϕ₀ [unitless] has a lower bound of 0 and an upper bound of 1, definitionally
+    # Density [kg/m^3] at zero porosity (i.e., of solid component only)
     if lithology == "Shale"
-        # c has a lower bound of 0 b/c porosity at depth should not be greater than porosity at surface
-        c_dist = truncated(Normal(0.51, 0.15), 0, Inf)
-        # ϕ₀ has a lower bound of 0 and an upper bound of 1 b/c of the definition of porosity
+        # From Allen & Allen 2013, Table 9.1
+        c_dist = truncated(Normal(0.51, 0.15), 0, Inf) #
         ϕ₀_dist = truncated(Normal(0.63, 0.15), 0, 1)
         ρg = 2720
+    elseif lithology == "Black Shale"
+        # As normal shale, but more compressible and lower solid density
+        c_dist = truncated(Normal(0.60, 0.15), 0, Inf) #
+        ϕ₀_dist = truncated(Normal(0.63, 0.15), 0, 1)
+        ρg = 2400
     elseif lithology == "Siltstone"
         c_dist = truncated(Normal(0.39, 0.1), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.56, 0.1), 0, 1)
-        ρg = 2640 # Might need to update this number
+        ρg = 2650
+    elseif lithology == "Shaly sandstone"
+        # From Allen & Allen 2013, Table 9.1
+        c_dist = truncated(Normal(0.40, 0.1), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.56, 0.1), 0, 1)
+        ρg = 2650
     elseif lithology == "Sandstone"
+        # From Allen & Allen 2013, Table 9.1
         c_dist = truncated(Normal(0.27, 0.1), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.49, 0.1), 0, 1)
         ρg = 2650
     elseif lithology == "Chalk"
+        # From Allen & Allen 2013, Table 9.1
         c_dist = truncated(Normal(0.71, 0.15), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.7, 0.15), 0, 1)
         ρg = 2710
@@ -32,17 +47,10 @@ function subsidenceparams(lithology::AbstractString)
         ϕ₀_dist = truncated(Normal(0.05, 0.05), 0, 1)
         ρg = 2960
     elseif lithology == "Quartzite"
-        c_dist = truncated(Normal(0.3, 0.1), 0, Inf)
-        ϕ₀_dist = truncated(Normal(0.2, 0.1), 0, 1)
+        # As sandstone, but lower porosity
+        c_dist = truncated(Normal(0.27, 0.1), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.15, 0.1), 0, 1)
         ρg = 2650
-     elseif lithology == "Diabase"
-        c_dist = truncated(Normal(0.65, 0.1), 0, Inf)
-        ϕ₀_dist = truncated(Normal(0.285, 0.1), 0, 1)
-        ρg = 2960
-    elseif lithology == "Rhyolite"
-        c_dist = truncated(Normal(0.65, 0.1), 0, Inf)
-        ϕ₀_dist = truncated(Normal(0.275, 0.1), 0, 1)
-        ρg = 2510
     elseif lithology == "Diamictite"
         c_dist = truncated(Normal(0.51, 0.15), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.63, 0.15), 0, 1)
@@ -55,14 +63,28 @@ function subsidenceparams(lithology::AbstractString)
         c_dist = truncated(Normal(0.51, 0.15), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.63, 0.15), 0, 1)
         ρg = 2720
+    elseif lithology == "Diabase"
+        # As basalt, but lower initial porosity
+        c_dist = truncated(Normal(0.5, 0.2), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.03, 0.05), 0, 1)
+        ρg = 2960
     elseif lithology == "Basalt"
-        c_dist = truncated(Normal(0.65, 0.1), 0, Inf)
-        ϕ₀_dist = truncated(Normal(0.05, 0.1), 0, 1)
-        ρg = 2980
+        c_dist = truncated(Normal(0.5, 0.2), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.095, 0.1), 0, 1)
+        ρg = 2960
     elseif lithology == "Andesite"
-        c_dist = truncated(Normal(0.65, 0.1), 0, Inf)
+        c_dist = truncated(Normal(0.5, 0.2), 0, Inf)
         ϕ₀_dist = truncated(Normal(0.095, 0.1), 0, 1)
         ρg = 2650
+    elseif lithology == "Rhyolite"
+        c_dist = truncated(Normal(0.5, 0.2), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.275, 0.14), 0, 1)
+        ρg = 2510
+    elseif lithology == "Tuff"
+        # As Rhyolite, but more porous and compressible
+        c_dist = truncated(Normal(0.65, 0.3), 0, Inf)
+        ϕ₀_dist = truncated(Normal(0.35, 0.2), 0, 1)
+        ρg = 2550
     else # fallback, if unknown
         @warn "lithology $lithology not recognized, using default porosity parameters"
         c_dist = truncated(Normal(0.5, 0.3), 0, Inf)
