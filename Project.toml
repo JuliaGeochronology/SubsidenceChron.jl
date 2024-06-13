@@ -1,7 +1,7 @@
 name = "SubsidenceChron"
 uuid = "f7321fe0-76de-4184-b262-f3439fe138fd"
 authors = ["Tianran Zhang", "C. Brenhin Keller"]
-version = "0.3.2"
+version = "0.4.0"
 
 [deps]
 Chron = "68885b1f-77b5-52a7-b2e7-6a8014c56b98"
@@ -15,7 +15,7 @@ StatGeochemBase = "61e559cd-58b4-4257-8528-26bb26ff2b9a"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
-Chron = "0.4.15, 0.5"
+Chron = "0.5"
 Distributions = "0.15 - 0.25"
 IfElse = "0.1"
 LoopVectorization = "0.12"
