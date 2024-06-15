@@ -20,35 +20,6 @@ end
 
 # Part 2a: Modified StratMetropolis for extensional basins - without hiatus
 
-# To avoid allocations when indexing by a boolean vector
-function copyat!(dest::DenseArray, src, t::BitVector)
-    @assert eachindex(t) == eachindex(src)
-    iₙ = firstindex(dest)
-    iₗ = lastindex(dest)
-    @inbounds for iₛ in eachindex(src)
-        if t[iₛ]
-            dest[iₙ] = src[iₛ]
-            iₙ += 1
-            iₙ > iₗ && break
-        end
-    end
-    return dest
-end
-function reversecopyat!(dest::DenseArray, src, t::BitVector)
-    @assert eachindex(t) == eachindex(src)
-    i₀ = firstindex(dest)
-    iₙ = lastindex(dest)
-    @inbounds for iₛ in eachindex(src)
-        if t[iₛ]
-            dest[iₙ] = src[iₛ]
-            iₙ -= 1
-            iₙ < i₀ && break
-        end
-    end
-    return dest
-end
-
-
 """
 ```julia
 SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConfiguration, therm::ThermalSubsidenceParameters, subsidence_strat_depths, Sμ, Sσ, beta_ip, t0_ip;
