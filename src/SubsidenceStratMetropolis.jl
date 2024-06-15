@@ -21,7 +21,7 @@ end
 # Part 2a: Modified StratMetropolis for extensional basins - without hiatus
 
 # To avoid allocations when indexing by a boolean vector
-function copyat!(dest, t, src)
+function copyat!(dest::DenseArray, src, t::BitVector)
     @assert eachindex(t) == eachindex(src)
     iₙ = firstindex(dest)
     iₗ = lastindex(dest)
@@ -34,7 +34,7 @@ function copyat!(dest, t, src)
     end
     return dest
 end
-function reversecopyat!(dest, t, src)
+function reversecopyat!(dest::DenseArray, src, t::BitVector)
     @assert eachindex(t) == eachindex(src)
     i₀ = firstindex(dest)
     iₙ = lastindex(dest)
@@ -278,7 +278,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(Height, Height_sigma, sample_heightₚ)
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
-            copyat!(ts_model_agesₚ, subsidence_height_t, model_agesₚ)
+            copyat!(ts_model_agesₚ, model_agesₚ, subsidence_height_t)
             τ = aₚ^2/(pi^2*κ*1e6) # Myr
             E₀ = (4*aₚ*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water)) # Also meters!
             llₚ += normpdf_ll(mean(lithosphere), std(lithosphere), aₚ)
@@ -371,7 +371,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             llₚ += normpdf_ll(Height, Height_sigma, sample_heightₚ)
             llₚ += normpdf_ll(ideal_subs_parameters, ideal_subs_parameters_sigma, subs_parametersₚ)
 
-            copyat!(ts_model_agesₚ, subsidence_height_t, model_agesₚ)
+            copyat!(ts_model_agesₚ, model_agesₚ, subsidence_height_t)
             τ = aₚ^2/(pi^2*κ*1e6) # Myr
             E₀ = (4*aₚ*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water)) # Also meters!
             llₚ += normpdf_ll(mean(lithosphere), std(lithosphere), aₚ)
