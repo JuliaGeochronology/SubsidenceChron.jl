@@ -10,5 +10,6 @@ const make_plots = get(ENV, "MAKE_PLOTS", false) == "true"
     @test yₚ ≈ [0.0, 1.143612863313294, 2.1821135232335362]
 end
 @testset "Subsidence" begin include("testSubsidence.jl") end
+@testset "Utilities" begin include("testUtilities.jl") end
 @testset "Strat only" begin include("testStratOnly.jl") end
 @testset "Coupled model" begin include("testCoupled.jl") end

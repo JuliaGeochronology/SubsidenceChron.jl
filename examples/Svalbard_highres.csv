@@ -1,37 +1,37 @@
-layer,Thickness,Lithology
-36,68,Dolostone
-35,16,Limestone
-34,111,Dolostone
-33,17,Shale
-32,10,Sandstone
-31,24,Shale
-30,150,Dolostone
-29,65,Dolostone
-28,30,Limestone
-27,21,Dolostone
-26,11,Limestone
-25,14,Dolostone
-24,153,Limestone
-23,61,Limestone
-22,20,Dolostone
-21,23,Limestone
-20,138,Dolostone
-19,7,Sandstone
-18,50,Dolostone
-17,91,Limestone
-16,21,Shale
-15,5,Dolostone
-14,11,Shale
-13,43,Dolostone
-12,13,Shale
-11,50,Dolostone
-10,45,Limestone
-9,82,Dolostone
-8,61,Limestone
-7,50,Dolostone
-6,10,Limestone
-5,11,Dolostone
-4,205,Limestone
-3,240,Limestone
-2,147,Dolostone
-1,64,Dolostone
+layer,Thickness,Lithology,Formation
+36,68,Dolostone,Russøya Fm
+35,16,Limestone,Russøya Fm
+34,111,Dolostone,Russøya Fm
+33,17,Shale,Russøya Fm
+32,10,Sandstone,Backlundtoppen Fm
+31,24,Shale,Backlundtoppen Fm
+30,150,Dolostone,Backlundtoppen Fm
+29,65,Dolostone,Backlundtoppen Fm
+28,30,Limestone,Backlundtoppen Fm
+27,21,Dolostone,Backlundtoppen Fm
+26,11,Limestone,Backlundtoppen Fm
+25,14,Dolostone,Backlundtoppen Fm
+24,153,Limestone,Backlundtoppen Fm
+23,61,Limestone,Draken Fm
+22,20,Dolostone,Draken Fm
+21,23,Limestone,Draken Fm
+20,138,Dolostone,Draken Fm
+19,7,Sandstone,Draken Fm
+18,50,Dolostone,Draken Fm
+17,91,Limestone,Svanbergfjellet Fm
+16,21,Shale,Svanbergfjellet Fm
+15,5,Dolostone,Svanbergfjellet Fm
+14,11,Shale,Svanbergfjellet Fm
+13,43,Dolostone,Svanbergfjellet Fm
+12,13,Shale,Svanbergfjellet Fm
+11,50,Dolostone,Svanbergfjellet Fm
+10,45,Limestone,Svanbergfjellet Fm
+9,82,Dolostone,Svanbergfjellet Fm
+8,61,Limestone,Svanbergfjellet Fm
+7,50,Dolostone,Svanbergfjellet Fm
+6,10,Limestone,Svanbergfjellet Fm
+5,11,Dolostone,Svanbergfjellet Fm
+4,205,Limestone,Grusdievbreen Fm
+3,240,Limestone,Grusdievbreen Fm
+2,147,Dolostone,Grusdievbreen Fm
+1,64,Dolostone,Grusdievbreen Fm
