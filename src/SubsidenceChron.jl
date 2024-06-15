@@ -30,6 +30,6 @@ module SubsidenceChron
     export DecompactBackstrip, SubsidenceStratMetropolis
 
     # Other exported functions
-    export find_formation_depths
+    export find_formation_depths, find_formation_heights
 
 end # module
