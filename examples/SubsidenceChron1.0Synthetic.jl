@@ -3,7 +3,7 @@
 ## --- Load required pacages, install SubsidenceChron if required
 
     using SubsidenceChron
-    using StatGeochem, Distributions, Plots, Statistics, StatsBase
+    using Distributions, Plots, Statistics, StatsBase
 
 ## --- Part 1: Decompaction and Backstripping
 
