@@ -59,9 +59,22 @@
         fg_color_legend=:white, 
         xflip = true, 
         yflip = true,
+        legend = :bottomleft,
     )
     plot!(p1, subsidence_strat_depths, Sₜ[:,2:end], alpha = 0.01, label = "", color = "blue")
     plot!(p1, subsidence_strat_depths, Sμ, alpha = 1, label = "Tectonic subsidence", color = "blue")
+    formation, top, bottom = find_formation_depths(data_csv.Formation, data_csv.Thickness)
+    yl = ylims()
+    ymin = min(yl...,)
+    for i in eachindex(formation)
+        x = [top[i], bottom[i]]
+        plot!(x, fill(ymin, 2), fillto=0.0, label="", color=lines[i])
+        # Only plot name if formation is more than 5% of section
+        if nanrange(x) > 0.05 * nanrange(xlims())
+            annotate!(sum(x)/2, 0, text(formation[i], 7, :left, :top, rotation=-45))
+        end
+    end
+    ylims!(yl)
     savefig(p1, "DecompactBackstrip.pdf")
     display(p1)
 
@@ -119,8 +132,6 @@
     # Currently the systematic error is set to be = 1% of the sigma for the tectonic subsidence of the first (oldest) layer
     Sσ_corr = Sσ .+ ((Sμ[end-1]-Sμ[end])/100)
 
-## --- Stratigraphic MCMC model without hiatus
-
     #Run the model
     (subsmdl, agedist, lldist, beta_t0dist, lldist_burnin) = SubsidenceStratMetropolis(smpl, config, therm, subsidence_strat_depths, Sμ, Sσ_corr, Beta_sigma/10, T0_sigma/10)
 
@@ -136,6 +147,8 @@
     beta_t0dist = readdlm("beta_t0dist.csv", ',', Float64)
     lldist_burnin = readdlm("lldist_burnin.csv", ',', Float64)
     =#
+
+## --- Plot results
 
     # Plot 1: Age-depth model (mean and 95% confidence interval for both model and data)
     hdl =  plot(framestyle=:box, xlabel="Age [$(smpl.Age_Unit)]", ylabel="Height ($(smpl.Height_Unit))",)
@@ -160,8 +173,11 @@
     ymax = maximum(subsmdl.Height)
     for i in eachindex(formation)
         x = [xmin, xminshifted]
-        plot!(x, fill(ymax-top[i],2), fillto=(ymax-bottom[i]), label="")
-        annotate!((xmin+xminshifted)/2, ymax-(top[i]+bottom[i])/2, text(formation[i], 6, :left, :bottom, rotation=-45))
+        plot!(x, fill(ymax-top[i],2), fillto=(ymax-bottom[i]), label="", color=lines[i])
+        # Plot name if > 1% of section thickness
+        if nanrange((top[i], bottom[i])) > 0.01*nanrange(ylims())
+            annotate!((xmin+xminshifted)/2, ymax-(top[i]+bottom[i])/2, text(formation[i], 6, :left, :bottom, rotation=-45))
+        end
     end
     xlims!(xminshifted, maximum(xl))
     savefig(hdl,"Svalbard_AgeDepth_strat.pdf")
@@ -232,8 +248,11 @@
     ymin = min(yl...,)
     for i in eachindex(formation)
         x = linterp1s(subsmdl.Height, subsmdl.Age, maximum(subsmdl.Height).-[top[i], bottom[i]])
-        plot!(x, fill(ymin, 2), fillto=0.0, label="")
-        annotate!(sum(x)/2, 0, text(formation[i], 7, :left, :top, rotation=-45))
+        plot!(x, fill(ymin, 2), fillto=0.0, label="", color=lines[i])
+        # Only plot name if formation is more than 5% of section
+        if nanrange(x) > 0.05 * nanrange(xlims())
+            annotate!(sum(x)/2, 0, text(formation[i], 7, :left, :top, rotation=-45))
+        end
     end
     ylims!(yl)
 
@@ -264,8 +283,11 @@
     # ymin = min(yl...,)
     # for i in eachindex(formation)
     #     x = linterp1s(subsmdl.Height, subsmdl.Age, maximum(subsmdl.Height).-[top[i], bottom[i]])
-    #     plot!(x, fill(ymin, 2), fillto=0.0, label="")
-    #     annotate!(sum(x)/2, 0, text(formation[i], 7, :left, :top, rotation=-45))
+    #     plot!(x, fill(ymin, 2), fillto=0.0, label="", color=lines[i])
+    #     # Only plot name if formation is more than 5% of section
+    #     if nanrange(x) > 0.05 * nanrange(xlims())
+    #         annotate!(sum(x)/2, 0, text(formation[i], 7, :left, :top, rotation=-45))
+    #     end
     # end
     # ylims!(yl)
 
@@ -298,7 +320,7 @@
     # Plot results
     hdl = plot(framestyle=:box,
         xlabel="Age [$(smpl.Age_Unit)]", 
-        ylabel="Subsidence [$(smpl.Height_Unit) / $(smpl.Age_Unit) over $binwidth $(smpl.Age_Unit)]", 
+        ylabel="Subsidence Rate [$(smpl.Height_Unit) / $(smpl.Age_Unit) over $binwidth $(smpl.Age_Unit)]", 
         fg_color_legend=:white,
         legend=:bottomleft,
         xflip=true,
@@ -312,16 +334,19 @@
     end
     plot!(hdl,agebincenters,dsdt_50p, label="Median", color=:grey, linewidth=1)
 
-    # # Add stratigraphy
-    # formation, top, bottom = find_formation_depths(data_csv.Formation, data_csv.Thickness)
-    # yl = ylims()
-    # ymax = max(yl...,)
-    # for i in eachindex(formation)
-    #     x = linterp1s(subsmdl.Height, subsmdl.Age, maximum(subsmdl.Height).-[top[i], bottom[i]])
-    #     plot!(x, fill(ymax, 2), fillto=ymax+nanrange(yl)/25, label="")
-    #     annotate!(sum(x)/2, ymax, text(formation[i], 7, :left, :top, rotation=-45))
-    # end
-    # ylims!(min(yl...),ymax+nanrange(yl)/25)
+    # Add stratigraphy
+    formation, top, bottom = find_formation_depths(data_csv.Formation, data_csv.Thickness)
+    yl = ylims()
+    ymax = max(yl...,)
+    for i in eachindex(formation)
+        x = linterp1s(subsmdl.Height, subsmdl.Age, maximum(subsmdl.Height).-[top[i], bottom[i]])
+        plot!(x, fill(ymax, 2), fillto=ymax+nanrange(yl)/30, label="", color=lines[i])
+        # Only plot name if formation is more than 5% of section
+        if nanrange(x) > 0.05 * nanrange(xlims())
+            annotate!(sum(x)/2, ymax, text(formation[i], 7, :left, :top, rotation=-45))
+        end
+    end
+    ylims!(min(yl...),ymax+nanrange(yl)/30)
     
     savefig(hdl,"SubsidenceRateModelCI.pdf")
     display(hdl)
