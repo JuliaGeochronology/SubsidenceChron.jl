@@ -3,29 +3,29 @@
 ## --- Load required pacages, install SubsidenceChron if required
 
     using SubsidenceChron
-    using Distributions, Plots, Statistics, StatsBase
+    using Plots, StatsBase
 
 ## --- Part 1: Decompaction and Backstripping
 
     # # # # # # # # # # # Enter stratigraphic information here! # # # # # # # # # # # #
     # Import the data file (.csv)
-    data_csv = importdataset("examples/Test_DB_PerfectSubsidence.csv",',')
+    data_csv = importdataset("examples/Test_DB_PerfectSubsidence.csv",',', importas=:Tuple)
     # Obtain stratigraphic info from the data file
-    nLayers = length(data_csv["Thickness"])
+    nLayers = length(data_csv.Thickness)
     strat = StratData(nLayers)
-    strat.Lithology          = data_csv["Lithology"]
-    strat.Thickness         .= data_csv["Thickness"]
+    strat.Lithology          = data_csv.Lithology
+    strat.Thickness         .= data_csv.Thickness
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
     # # # # # # # # OPTIONAL - Enter paleo water depth information here! # # # # # # # #
     # Import the data file (.csv)
-    wd_csv = importdataset("examples/PerfectSubsidence_SequenceStrat.csv", ',')
+    wd_csv = importdataset("examples/Test_DB_PerfectSubsidence_SequenceStrat.csv", ',', importas=:Tuple)
     # Obtain paleo water depth info from the data file
-    wd_nLayers = length(wd_csv["Thickness"])
+    wd_nLayers = length(wd_csv.Thickness)
     wd = WaterDepth(wd_nLayers)
-    wd.DepthID    = wd_csv["Type"]
-    wd.Thickness .= wd_csv["Thickness"]
+    wd.DepthID    = wd_csv.Type
+    wd.Thickness .= wd_csv.Thickness
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
@@ -58,7 +58,7 @@
     #plot!(p1, reverse(subsidence_strat_depths), yflip = true, label = "Present-day thickness", color = "red")
     plot!(p1, Sₜ[:,2:end], alpha = 0.01, label = "", yflip = true, color = "blue", fg_color_legend=:white)
     savefig(p1, "Test_DecompactBackstrip_higherres.pdf")
-
+    display(p1)
 
 ## --- Part 2a: Age-depth modeling
 
@@ -104,7 +104,7 @@
     config.bounding = 1.0 # how far away do we place runaway bounds, as a fraction of total section height. Larger is slower.
     (bottom, top) = extrema(smpl.Height)
     npoints_approx = round(Int,length(bottom:config.resolution:top) * (1 + 2*config.bounding))
-    config.nsteps = 5000 # Number of steps to run in distribution MCMC
+    config.nsteps = 50000 # Number of steps to run in distribution MCMC
     config.burnin = 10000*npoints_approx # Number to discard
     config.sieve = round(Int,npoints_approx) # Record one out of every nsieve steps
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -127,7 +127,8 @@
     =#
 
     # Plot 1: Age-depth model (mean and 95% confidence interval for both model and data)
-    hdl = plot([subsmdl.Age_025CI; reverse(subsmdl.Age_975CI)],[subsmdl.Height; reverse(subsmdl.Height)], fill=(round(Int,minimum(subsmdl.Height)),0.5,:blue), label="model")
+    hdl =  plot(framestyle=:box, xlabel="Age [$(smpl.Age_Unit)]", ylabel="Height ($(smpl.Height_Unit))",)
+    plot!(hdl, [subsmdl.Age_025CI; reverse(subsmdl.Age_975CI)],[subsmdl.Height; reverse(subsmdl.Height)], fill=(round(Int,minimum(subsmdl.Height)),0.5,:blue), label="model")
     plot!(hdl, subsmdl.Age, subsmdl.Height, linecolor=:blue, label="", fg_color_legend=:white) # Center line
     t = smpl.Age_Sidedness .== 0 # Two-sided constraints (plot in black)
     any(t) && plot!(hdl, smpl.Age[t], smpl.Height[t], xerror=(smpl.Age[t]-smpl.Age_025CI[t],smpl.Age_975CI[t]-smpl.Age[t]),yerror=(2*smpl.Height_sigma[t]),label="data",seriestype=:scatter,color=:black)
@@ -137,20 +138,22 @@
     t = smpl.Age_Sidedness .== -1 # Maximum ages (plot in orange)
     any(t) && plot!(hdl, smpl.Age[t], smpl.Height[t], xerror=(zeros(count(t)),smpl.Age_975CI[t]-smpl.Age[t]),label="",seriestype=:scatter,color=:orange,msc=:orange)
     any(t) && zip(smpl.Age[t], smpl.Age[t].-nanmean(smpl.Age_sigma[t])*4, smpl.Height[t]) .|> x-> plot!([x[1],x[2]],[x[3],x[3]], arrow=true, label="", color=:orange)
-    plot!(hdl, xlabel="Age ($(smpl.Age_Unit))", ylabel="Height ($(smpl.Height_Unit))")
-    #plot!(hdl, [smpl.Age[1], smpl.Height[1]],[smpl.Age[3], smpl.Height[3]])
     savefig(hdl,"Test_AgeModel.pdf")
-    #display(hdl)
+    display(hdl)
 
     # Plot 2: Posterior distributions of beta
-    post_beta = histogram(beta_t0dist[1,:], color="black", linecolor=nothing, alpha = 0.5, nbins=50)
-    vline!([subsmdl.Beta_Median], linecolor = "black", linestyle=:dot, linewidth = 3)
+    post_beta = plot(framestyle=:box, xlabel="Beta [unitless]", ylabel="Probability density",)
+    histogram!(post_beta, beta_t0dist[1,:], color="black", linecolor=nothing, alpha = 0.5, nbins=50, normalized=true, label="")
+    vline!(post_beta, [subsmdl.Beta_Median], linecolor = "black", linestyle=:dot, linewidth = 3, label = "median")
     savefig(post_beta, "Test_PosteriorBeta.pdf")
+    display(post_beta)
 
     # Plot 3: Posterior distributions of t₀
-    post_t0 = histogram(beta_t0dist[2,:], color="black", linecolor=nothing, alpha = 0.5, nbins=50)
-    vline!([subsmdl.T0_Median], linecolor = "black", linestyle=:dot, linewidth = 3)
+    post_t0 = plot(framestyle=:box, xlabel="t0 Age [$(smpl.Age_Unit)]", ylabel="Probability density",)
+    histogram!(post_t0, beta_t0dist[2,:], color="black", linecolor=nothing, alpha = 0.5, nbins=50, normalized=true, label="")
+    vline!(post_t0, [subsmdl.T0_Median], linecolor = "black", linestyle=:dot, linewidth = 3, label = "median")
     savefig(post_t0, "Test_PosteriorT0.pdf")
+    display(post_t0)
 
     # Plot 4: Interpolate results for target horizons
     target_height = [-1840, -1320, -980, -360]
@@ -160,17 +163,21 @@
         interpolated_distribution[:,i] = linterp1s(subsmdl.Height,agedist[:,i],target_height)
     end
     # Calculate summary statistics
-    predicted_medians = nanmedian(interpolated_distribution, dims=1)
-    predicted_025CI = nanpctile(interpolated_distribution, 2.5, dims=1)
-    predicted_975CI = nanpctile(interpolated_distribution, 97.5, dims=1)
+    predicted_medians = nanmedian(interpolated_distribution, dims=2)
+    predicted_025CI = nanpctile(interpolated_distribution, 2.5, dims=2)
+    predicted_975CI = nanpctile(interpolated_distribution, 97.5, dims=2)
     # Plotting (full distribution with mean as a dashed line)
-    age_interp = histogram(interpolated_distribution[:,2], nbins=50, label="")
-    vline!([predicted_medians[2]], linecolor = "black", linestyle=:dot, linewidth = 3)
-    plot!(age_interp, xlabel="Age ($(smpl.Age_Unit))")
+    age_interp = plot(framestyle=:box,
+        xlabel="Age [$(smpl.Age_Unit)] for the onset of Bitter Springs CIE", 
+        ylabel="Probability density",
+    )
+    histogram!(age_interp, interpolated_distribution[2,:], nbins=50, normalized=true, label="")
+    vline!(age_interp, predicted_medians[2:2], linecolor = "black", linestyle=:dot, linewidth = 3, label="median: $(round(predicted_medians[2], digits=1))")
     savefig(age_interp, "Test_InterpolatedAge.pdf")
     display(age_interp)
 
 ## --- Code for test plots
+
     #=
     #Test Plot 2: see how well the model predicted beta and t0 matches the actual values:
     beta_range = 1:0.005:therm.Param[1]+therm.Sigma[1]*3 #three sigmas
