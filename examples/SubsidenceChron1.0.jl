@@ -252,7 +252,7 @@
     )
     xq = maximum(subsmdl.Height).-subsidence_strat_depths
     plot!(p1, linterp1s(subsmdl.Height, subsmdl.Age, xq), Sμ, alpha = 1, label = "Tectonic subsidence", color = "blue")
-    ages = zeros(length(subsmdl.Height), nsims)
+    ages = zeros(length(subsidence_strat_depths), nsims)
     for i in axes(ages,2)
         linterp1s!(view(ages, :, i), subsmdl.Height, view(agedist, :, rand(1:size(agedist,2))), xq)
     end
