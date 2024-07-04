@@ -59,6 +59,30 @@
         lithosphere_975CI::Array{Float64,1}
     end
 
+    struct SubsidenceStratAgeModel_Height
+        Height::Array{Float64,1}
+        Age::Array{Float64,1}
+        Age_sigma::Array{Float64,1}
+        Age_Median::Array{Float64,1}
+        Age_025CI::Array{Float64,1}
+        Age_975CI::Array{Float64,1}
+        Beta::Array{Float64,1}
+        Beta_sigma::Array{Float64,1}
+        Beta_Median::Array{Float64,1}
+        Beta_025CI::Array{Float64,1}
+        Beta_975CI::Array{Float64,1}
+        TSHeight::Array{Float64,1}
+        TSHeight_sigma::Array{Float64,1}
+        TSHeight_Median::Array{Float64,1}
+        TSHeight_025CI::Array{Float64,1}
+        TSHeight_975CI::Array{Float64,1}
+        lithosphere::Array{Float64,1}
+        lithosphere_sigma::Array{Float64,1}
+        lithosphere_Median::Array{Float64,1}
+        lithosphere_025CI::Array{Float64,1}
+        lithosphere_975CI::Array{Float64,1}
+    end
+
 # For backwards compatibility
 const NewStratData = StratData
 const NewWaterDepth = WaterDepth

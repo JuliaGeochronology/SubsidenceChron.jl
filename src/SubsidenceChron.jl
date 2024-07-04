@@ -24,10 +24,10 @@ module SubsidenceChron
     include("SubsidenceStratMetropolis.jl")
 
     # Structs
-    export StratData, WaterDepth, ThermalSubsidenceParameters, SubsidenceStratAgeModel
+    export StratData, WaterDepth, ThermalSubsidenceParameters, SubsidenceStratAgeModel, SubsidenceStratAgeModel_Height
 
     # High-level functions
-    export DecompactBackstrip, SubsidenceStratMetropolis
+    export DecompactBackstrip, SubsidenceStratMetropolis_Height, SubsidenceStratMetropolis
 
     # Other exported functions
     export find_formation_depths, find_formation_heights

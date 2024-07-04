@@ -1,0 +1,11 @@
+layer,Thickness,Lithology,Formation
+10,200,Shale,J
+9,250,Sandstone,I
+8,750,Shale,H
+7,1300,Chalk,G
+6,900,Sandstone,F
+5,200,Limestone,E
+4,400,Dolostone,D
+3,250,Sandstone,C
+2,750,Anhydrite,B
+1,400,Quartzite,A
