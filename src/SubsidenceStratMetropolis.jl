@@ -15,7 +15,6 @@ function subsidence_ll(E₀, τ, model_St, model_St_sigma, model_t, beta_t0)
         ll -= (x-mu)*(x-mu) / (2*sigma*sigma)
     end
     return ll
-    return log_likelihood
 end
 # Method 2: Strat position for rift-drift transition is unknown (i.e., prior = strat height)
 # Attemp 1: Only modified the subsidence_ll function slightly; majority of additional calculations are placed outside of this function
@@ -32,7 +31,6 @@ function subsidence_strat_ll(E₀, τ, model_St, model_St_sigma, model_t, beta)
         ll -= (x-mu)*(x-mu) / (2*sigma*sigma)
     end
     return ll
-    return log_likelihood
 end
 #= 
 # Attempt 2: Put all additional calculations in this new function subsidence_ll_strat (to avoid allocating a set of variables that changes length during each simulation)
