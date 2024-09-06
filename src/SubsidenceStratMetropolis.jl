@@ -17,7 +17,9 @@ function subsidence_ll(E₀, τ, model_St, model_St_sigma, model_t, beta_t0)
     return ll
 end
 # Method 2: Strat position for rift-drift transition is unknown (i.e., prior = strat height)
+#=
 # Attemp 1: Only modified the subsidence_ll function slightly; majority of additional calculations are placed outside of this function
+# This didn't work - takes too long to run
 function subsidence_strat_ll(E₀, τ, model_St, model_St_sigma, model_t, beta)
     @assert eachindex(model_St) == eachindex(model_St_sigma) == eachindex(model_t)
     β = beta
@@ -32,7 +34,7 @@ function subsidence_strat_ll(E₀, τ, model_St, model_St_sigma, model_t, beta)
     end
     return ll
 end
-#= 
+
 # Attempt 2: Put all additional calculations in this new function subsidence_ll_strat (to avoid allocating a set of variables that changes length during each simulation)
 # This didn't work - burnin would take 2.5 days...
 function subsidence_ll_strat(E₀, τ, Sμ, Sσ, model_ages, model_h, s_top, equivalent_strat_height, beta_ts)
@@ -60,6 +62,24 @@ function subsidence_ll_strat(E₀, τ, Sμ, Sσ, model_ages, model_h, s_top, equ
     return log_likelihood
 end
 =#
+
+# Attemp 3: Use indexing (instead of creating new variables) to loop through the thermal subsidence calculations
+function subsidence_strat_ll(E₀, τ, St, St_sigma, ages, heights, converted_strat, top, bottom, beta)
+    bottom_t = ages[bottom]
+    bottom_St = St[findclosest(heights[bottom], converted_strat)]
+    ll = zero(float(eltype(St)))
+    #@assert eachindex(model_St) == eachindex(model_St_sigma) == eachindex(model_t)
+    for i in bottom+1:top
+        # Calculate subsidence_model_heights given this unique smooth thermal subsidence model at each age in model_t
+        x = (E₀*beta/pi)*sin(pi/beta)*(1 -exp(-(bottom_t -ages[i])/τ))
+        s_idx = findclosest(heights[i], converted_strat)
+        mu = St[s_idx]-bottom_St
+        sigma = St_sigma[s_idx]
+        # Turn that into a log likelihood using some age uncertainty of the curve
+        ll -= (x-mu)*(x-mu) / (2*sigma*sigma)
+    end
+    return ll
+end
 
 # Part 2a: Modified StratMetropolis for extensional basins - without hiatus
 # Method 1: Strat position for rift-drift transition is known
@@ -565,6 +585,8 @@ function SubsidenceStratMetropolis_Height(smpl::ChronAgeData, config::StratAgeMo
         end
         
         # Attempt 1: tried to only modified the subsidence_ll function slightly; majority of additional calculations are placed outside of this function
+        # This didn't work - would take too long 
+        #=
         subsidence_height_t = subs_parameters[2] .<= model_heights .<= subsidencetop
         ts_model_ages = model_ages[subsidence_height_t] # N.B., subsidence stuff goes top down
         # Find the subsidence model horizons that match each age model horizon within the range where subsidence modelling is active
@@ -573,13 +595,18 @@ function SubsidenceStratMetropolis_Height(smpl::ChronAgeData, config::StratAgeMo
         # N.B. this will reverse ts_Sμ and ts_Sσ to match the (bottom-up) order in model_heights 
         ts_Sμ = Sμ[closest_subsidence] .- Sμ[closest_subsidence][1] # We only consider subsidence that happens after `subsidencebottom`
         ts_Sσ = Sσ[closest_subsidence]
-
         # Add subsidence likelihood to initial proposal ll
         ll += subsidence_strat_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_ages, subs_parameters[1])/length(ts_Sμ)
+        =#
 
         # Attempt 2:
         # This didn't work - would take too long 
         # ll += subsidence_ll_strat(E₀, τ, Sμ, Sσ, model_ages, model_heights, subsidencetop, equivalent_strat_height, subs_parameters)
+
+        # Attempt 3: try to speed things up by using indexing to loop through the thermal subsidence calculations
+        top_idx = findclosest(subsidencetop, model_heights)
+        bottom_idx = findclosest(subs_parameters[2], model_heights)
+        ll += subsidence_strat_ll(E₀, τ, Sμ, Sσ, model_ages, model_heights, equivalent_strat_height, top_idx, bottom_idx, subs_parameters[1])/(top_idx-bottom_idx+1)
 
     # Preallocate variables for MCMC proposals
         llₚ = ll
@@ -588,7 +615,7 @@ function SubsidenceStratMetropolis_Height(smpl::ChronAgeData, config::StratAgeMo
         sample_heightₚ = copy(sample_height)
         closest_model_agesₚ = copy(closest_model_ages)
         subs_parametersₚ = copy(subs_parameters)
-        ts_model_agesₚ = copy(ts_model_ages)
+        #ts_model_agesₚ = copy(ts_model_ages)
 
     # Run burnin
         # acceptancedist = fill(false,burnin)
@@ -659,6 +686,8 @@ function SubsidenceStratMetropolis_Height(smpl::ChronAgeData, config::StratAgeMo
             E₀ = (4*zₚ*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water)) # Also meters!
             llₚ += normpdf_ll(mean(lithosphere), std(lithosphere), zₚ)
             
+            #=
+            # Both Attempt 1 and 2 take too long to run
             # Attempt 1
             subsidence_height_t = subs_parametersₚ[2] .<= model_heights .<= subsidencetop
             ts_model_agesₚ = model_agesₚ[subsidence_height_t]
@@ -672,6 +701,11 @@ function SubsidenceStratMetropolis_Height(smpl::ChronAgeData, config::StratAgeMo
             # Attempt 2:
             # This didn't work - would take too long 
             # llₚ += subsidence_ll_strat(E₀, τ, Sμ, Sσ, model_agesₚ, model_heights, subsidencetop, equivalent_strat_height, subs_parametersₚ)
+            =#
+
+            # Attempt 3: 
+            bottom_idx = findclosest(subs_parametersₚ[2], model_heights)
+            llₚ += subsidence_strat_ll(E₀, τ, Sμ, Sσ, model_agesₚ, model_heights, equivalent_strat_height, top_idx, bottom_idx, subs_parametersₚ[1])/(top_idx-bottom_idx+1)
 
             # Accept or reject proposal based on likelihood
             if log(rand(Float64)) < (llₚ - ll)
@@ -764,6 +798,7 @@ function SubsidenceStratMetropolis_Height(smpl::ChronAgeData, config::StratAgeMo
             E₀ = (4*zₚ*ρ_mantle*αᵥ*T_mantle)/(pi^2*(ρ_mantle-ρ_water)) # Also meters!
             llₚ += normpdf_ll(mean(lithosphere), std(lithosphere), zₚ)
 
+            #=
             # Attempt 1
             subsidence_height_t = subs_parametersₚ[2] .<= model_heights .<= subsidencetop
             ts_model_agesₚ = model_agesₚ[subsidence_height_t]
@@ -780,6 +815,11 @@ function SubsidenceStratMetropolis_Height(smpl::ChronAgeData, config::StratAgeMo
             
             #copyat!(ts_model_agesₚ, subsidence_height_t, model_agesₚ)
             #llₚ += subsidence_ll(E₀, τ, ts_Sμ, ts_Sσ, ts_model_agesₚ, subs_parametersₚ)/length(ts_Sμ)
+            =#
+            
+            # Attempt 3: 
+            bottom_idx = findclosest(subs_parametersₚ[2], model_heights)
+            llₚ += subsidence_strat_ll(E₀, τ, Sμ, Sσ, model_agesₚ, model_heights, equivalent_strat_height, top_idx, bottom_idx, subs_parametersₚ[1])/(top_idx-bottom_idx+1)
 
             # Accept or reject proposal based on likelihood
             if log(rand(Float64)) < (llₚ - ll)

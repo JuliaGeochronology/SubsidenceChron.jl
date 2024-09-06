@@ -135,7 +135,7 @@
     =#
 
     # Plot 1: Age-depth model (mean and 95% confidence interval for both model and data)
-    hdl = plot([subsmdl.Age_025CI; reverse(subsmdl.Age_975CI)],[subsmdl.Height; reverse(subsmdl.Height)], fill=(round(Int,minimum(subsmdl.Height)),0.5,:blue), label="model")
+    hdl = plot([subsmdl.Age_025CI; reverse(subsmdl.Age_975CI)],[subsmdl.Height; reverse(subsmdl.Height)], fill=(round(Int,minimum(subsmdl.Height)),0.5,:blue), label="model", yflip = true, xflip = true)
     plot!(hdl, subsmdl.Age, subsmdl.Height, linecolor=:blue, label="", fg_color_legend=:white) # Center line
     t = smpl.Age_Sidedness .== 0 # Two-sided constraints (plot in black)
     any(t) && plot!(hdl, smpl.Age[t], smpl.Height[t], xerror=(2*smpl.Age_sigma[t]),yerror=(2*smpl.Height_sigma[t]),label="data",seriestype=:scatter,color=:black)
@@ -147,18 +147,20 @@
     any(t) && zip(smpl.Age[t], smpl.Age[t].-nanmean(smpl.Age_sigma[t])*4, smpl.Height[t]) .|> x-> plot!([x[1],x[2]],[x[3],x[3]], arrow=true, label="", color=:orange)
     plot!(hdl, xlabel="Age ($(smpl.Age_Unit))", ylabel="Height ($(smpl.Height_Unit))")
     #plot!(hdl, [smpl.Age[1], smpl.Height[1]],[smpl.Age[3], smpl.Height[3]])
-    savefig(hdl,"AgeDepth.pdf")
+    savefig(hdl,"AAEx58_AgeDepth_UnknownHeight.pdf")
     #display(hdl)
 
     # Plot 2: Posterior distributions of beta
-    post_beta = histogram(beta_tsdist[1,:], color="black", linecolor=nothing, alpha = 0.5, nbins=50)
-    vline!([subsmdl.Beta_Median], linecolor = "black", linestyle=:dot, linewidth = 3)
-    savefig(post_beta, "PosteriorBeta.pdf")
+    post_beta = histogram(beta_tsdist[1,:], linecolor=nothing, alpha = 0.5, nbins=50)
+    vline!([subsmdl.Beta_Median], linecolor=:blue, linestyle=:dot, linewidth = 3)
+    vline!([1.71], linecolor=:black, linewidth = 3)
+    savefig(post_beta, "AAEx58_PosteriorBeta_UnknownHeight.pdf")
 
     # Plot 3: Posterior distributions for the stratigraphic height of the start of thermal subsidence
-    post_ts = histogram(beta_tsdist[2,:], color="black", linecolor=nothing, alpha = 0.5, nbins=50)
-    vline!([subsmdl.TSHeight_Median], linecolor = "black", linestyle=:dot, linewidth = 3)
-    savefig(post_ts, "PosteriorTSHeight.pdf")
+    post_ts = histogram(beta_tsdist[2,:], linecolor=nothing, alpha = 0.5, nbins=50)
+    vline!([subsmdl.TSHeight_Median], linecolor=:blue, linestyle=:dot, linewidth = 3)
+    vline!([-3400], linecolor=:black, linewidth = 3)
+    savefig(post_ts, "AAEx58_PosteriorTSHeight_UnknownHeight.pdf")
 
     # Plot 4: Age prediction for the active rifting-thermal subsidence transition
     interpolated_distribution = Array{Float64}(undef, size(beta_tsdist,2), size(agedist,2))
