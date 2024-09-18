@@ -423,6 +423,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
 
             # Record sieved results
             if mod(n,sieve) == 0
+                lldist[n÷sieve] = ll
                 zdist[n÷sieve] = z
                 agedist[:,n÷sieve] .= model_ages
                 beta_t0dist[:,n÷sieve] .= subs_parameters
@@ -635,6 +636,9 @@ function SubsidenceStratMetropolis_Height(smpl::ChronAgeData, config::StratAgeMo
             for i in eachindex(subs_parametersₚ, ideal_subs_parameters_sigma)
                 subs_parametersₚ[i] += randn() * ideal_subs_parameters_sigma[i]
             end
+            if subs_parametersₚ[1] < 1
+                subs_parametersₚ[1] = 2 - subs_parametersₚ[1] #1+(1-x)
+            end
             zₚ = z .+ randn() * std(lithosphere)
 
             if rand() < 0.1
@@ -747,6 +751,9 @@ function SubsidenceStratMetropolis_Height(smpl::ChronAgeData, config::StratAgeMo
             for i in eachindex(subs_parametersₚ, ideal_subs_parameters_sigma)
                 subs_parametersₚ[i] += randn() * ideal_subs_parameters_sigma[i]
             end
+            if subs_parametersₚ[1] < 1
+                subs_parametersₚ[1] = 2 - subs_parametersₚ[1] #1+(1-x)
+            end
             zₚ = z .+ randn() * std(lithosphere)
 
             if rand() < 0.1
@@ -833,6 +840,7 @@ function SubsidenceStratMetropolis_Height(smpl::ChronAgeData, config::StratAgeMo
 
             # Record sieved results
             if mod(n,sieve) == 0
+                lldist[n÷sieve] = ll
                 zdist[n÷sieve] = z
                 agedist[:,n÷sieve] .= model_ages
                 beta_tsdist[:,n÷sieve] .= subs_parameters
