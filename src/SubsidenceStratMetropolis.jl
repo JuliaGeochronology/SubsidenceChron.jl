@@ -466,6 +466,25 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
 end
 
 # Part 2a - Method 2: Strat position for rift-drift transition is unknown
+"""
+```julia
+SubsidenceStratMetropolis_Height(smpl::ChronAgeData, config::StratAgeModelConfiguration, therm::ThermalSubsidenceParameters, subsidence_strat_depths, Sμ, Sσ, beta_ip, t0_ip;
+    subsidencetop=maximum(smpl.Height),
+    lithosphere = Normal(125000, 100),
+)
+```
+Runs the main SubsidenceChron.jl age-depth model routine given
+a set of Gaussian age constraints specified in the `smpl` struct,
+an age-depth model configuration specified in the `config` struct,
+thermal subsidence parameters defined in the `therm` struct,
+decompation and backstripping outputs in the form of `subsidence_strat_depths`, `Sμ`, and `Sσ`,
+and prior estimates for stretching factor Beta (`beta_ip`) and time of thermal subsedence onset (`t0_ip`).
+
+### Examples:
+```julia
+(subsmdl, agedist, lldist, beta_tsdist, lldist_burnin, zdist) = SubsidenceStratMetropolis_Height(smpl, config, therm, subsidence_strat_depths, Sμ, Sσ_corr, Beta_sigma/10, T0_sigma/10)
+```
+"""
 function SubsidenceStratMetropolis_Height(smpl::ChronAgeData, config::StratAgeModelConfiguration, therm::ThermalSubsidenceParameters, subsidence_strat_depths, Sμ, Sσ, beta_ip, ts_ip;
     subsidencetop=maximum(smpl.Height),
     lithosphere = Normal(125000, 100), # Meters!
