@@ -161,8 +161,36 @@ function decompact!(yₚ, y, ϕ₀, c, n, m; niterations = 10)
     end
 end
 
+"""
+```julia
+DecompactBackstrip(strat::StratData, [wd::WaterDepth], nsims, res, isostasy=true)
+```
+Decompact and backstrip a stratigraphic section `strat` at resolution `res`, 
+optionally including water depth information specified by `wd`.
+
+Uncertainties in density, surface porosity, and porosity-depth coefficient for
+each lithology are propagated by repeating this decompaction and backstripping 
+`nsims` tims in a simple Monte Carlo fashion.
+
+By default, isostatic subsidence is accounted for during the backstripping step
+(`isostasy=true`), such that the resulting `Sₜ` (the full matrix of subsidence 
+curves produced by the Monte Carlo simulation), `Sμ` (mean), and `Sσ` (standard 
+deviation) represent what is commonly called "tectonic subsidence", that is 
+decompacted sediment thickness (plus water depth, if specified) minus the 
+thickness accounted for by isostatic subsidence.
+
+For the purposes of isostatic calculations, the mantle is assumed to have a
+density of 3330 kg/m3 and water a density of 1000 kg/m3; input distributions
+for the density, surface porosity, and porosity-depth coefficient of each
+lithology are specified by the `subsidenceparams` function.
+
+### Examples:
+```julia
+(Sₜ, Sμ, Sσ, subsidence_strat_depths) = DecompactBackstrip(strat, 5000, 1.0)
+```
+"""
 # Decompaction and backstripping (Method 1: with water depth inputs)
-function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
+function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res, isostasy=true)
 
     # Import data from csv and assign parameters for each lithology
         lithology_inputs = strat.Lithology
@@ -296,11 +324,15 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
 
             # Backstripping calculations
             @inbounds for i = 1:model_nlayer+1
-                # Bulk density of all the columns (aka bulk densities of the whole sediment column for all timesteps)
-                # maximum([:,i]) = total depth of column at time step i
-                ρ_bulk_column[i] = sum(view(m_bulk,:,i))/maximum(view(Y,:,i))
-                # Tectonic subsidence for all timesteps; record results from all simulations
-                Sₜ[i,sim] = Y[model_nlayer+2-i,i]*((ρm-ρ_bulk_column[i])/(ρm-ρw)).+paleo_wd_highres[i]
+                if isostasy
+                    # Bulk density of all the columns (aka bulk densities of the whole sediment column for all timesteps)
+                    # maximum([:,i]) = total depth of column at time step i
+                    ρ_bulk_column[i] = sum(view(m_bulk,:,i))/maximum(view(Y,:,i))
+                    # Tectonic subsidence for all timesteps; record results from all simulations
+                    Sₜ[i,sim] = Y[model_nlayer+2-i,i]*((ρm-ρ_bulk_column[i])/(ρm-ρw)).+paleo_wd_highres[i]
+                else
+                    Sₜ[i,sim] = Y[model_nlayer+2-i,i]
+                end
             end
 
             mod(sim,pgrs_interval)==0 && update!(pgrs, sim)
@@ -315,7 +347,7 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res)
 end
 
 # Decompaction and backstripping (Method 2: without water depth inputs)
-function DecompactBackstrip(strat::StratData, nsims, res)
+function DecompactBackstrip(strat::StratData, nsims, res, isostasy=true)
 
     # Import data from csv and assign parameters for each lithology
         lithology_inputs = strat.Lithology
@@ -409,12 +441,16 @@ function DecompactBackstrip(strat::StratData, nsims, res)
             m_bulk[:,end] .= 0
 
             # Backstripping calculations
-            for i = 1:model_nlayer+1
-                # Bulk density of all the columns (aka bulk densities of the whole sediment column for all timesteps)
-                # maximum(Y_corr[:,i]) = total depth of column at time step i
-                ρ_bulk_column[i] = sum(view(m_bulk,:,i))/maximum(view(Y,:,i))
-                # Tectonic subsidence for all timesteps; record results from all simulations
-                Sₜ[i,sim] = Y[model_nlayer+2-i,i]*((ρm-ρ_bulk_column[i])/(ρm-ρw))
+            @inbounds for i = 1:model_nlayer+1
+                if isostasy
+                    # Bulk density of all the columns (aka bulk densities of the whole sediment column for all timesteps)
+                    # maximum(Y_corr[:,i]) = total depth of column at time step i
+                    ρ_bulk_column[i] = sum(view(m_bulk,:,i))/maximum(view(Y,:,i))
+                    # Tectonic subsidence for all timesteps; record results from all simulations
+                    Sₜ[i,sim] = Y[model_nlayer+2-i,i]*((ρm-ρ_bulk_column[i])/(ρm-ρw))
+                else
+                    Sₜ[i,sim] = Y[model_nlayer+2-i,i]
+                end
             end
 
             mod(sim,pgrs_interval)==0 && update!(pgrs, sim)
