@@ -189,8 +189,8 @@ lithology are specified by the `subsidenceparams` function.
 (Sₜ, Sμ, Sσ, subsidence_strat_depths) = DecompactBackstrip(strat, 5000, 1.0)
 ```
 """
-# Decompaction and backstripping (Method 1: with water depth inputs)
-function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res; isostasy=true)
+# Decompaction and backstripping (Method 1: with water depth and eustatic sea level inputs)
+function DecompactBackstrip(strat::StratData, wd::WaterDepth, sl::SeaLevel, nsims, res; isostasy=true)
 
     # Import data from csv and assign parameters for each lithology
         lithology_inputs = strat.Lithology
@@ -207,6 +207,7 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res; isosta
         # Define parameters for decompaction (number of simulations; water and mantle densities)
         ρw = 1000
         ρm = 3330
+        ρw_i = ρw/(ρm-ρw)
 
         # Allocate depth matricies (rows are strat horizons, columns are timesteps)
         # Decompacted depth
@@ -216,9 +217,6 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res; isosta
         c_highres = Array{Float64,1}(undef, model_nlayer)
         ϕ₀_highres = Array{Float64,1}(undef, model_nlayer)
         ρg_highres = Array{Float64,1}(undef, model_nlayer)
-
-        # Allocate paleo water depth matrix (for all modeled layers with a resolution = res)
-        paleo_wd_dist = Array{Float64,1}(undef, nsims)
 
         # Allocate porosity, density and tectonic subsidence matricies
         # Porosity of a strat unit at any depth
@@ -275,33 +273,67 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res; isosta
             wd_height_inputs = cumsum([0; wd.Thickness])
             wd_nlayer_input = length(wd.Thickness)
 
-            # Allocate matrix for paleo-water depth distributions (for all water depth input layers)
+            # Import eustatic sea level correction data
+            sl_min = sl.Minimum
+            sl_max = sl.Maximum
+            sl_h = sl.Thickness
+            sl_height_input = cumsum([0; sl_h])
+            sl_nlayer_input = length(sl_h)
+
+            # Allocate matrix for paleo-water depth and sea level distributions (for all water depth and sea level input layers) 
             paleo_wd_dist = Array{Distribution,1}(undef, wd_nlayer_input)
-            # Define the water depth distributions for all input layers based on their water depth classifications
+            sl_dist = Array{Distribution,1}(undef, sl_nlayer_input)
+            paleo_wd = Array{Float64,1}(undef, wd_nlayer_input)
+            sl_select = Array{Float64,1}(undef, sl_nlayer_input)
+
+            # Define the water depth and sea level distributions for all input layers based on their water depth classifications
             for i = 1:wd_nlayer_input
                 if wd_id_inputs[i] == "Exposure"
                     paleo_wd_dist[i] = Uniform(0, 0.01)
+                elseif wd_id_inputs[i] == "Transitional"
+                    paleo_wd_dist[i] = Uniform(0, 5)
                 elseif wd_id_inputs[i] == "FWWB"
-                    paleo_wd_dist[i] = Uniform(5,15)
+                    paleo_wd_dist[i] = truncated(Normal(15, 10), 0, Inf)
                 elseif wd_id_inputs[i] == "SWB"
-                    paleo_wd_dist[i] = Uniform(15,40)
+                    paleo_wd_dist[i] = truncated(Normal(60, 30), 0, Inf)
                 elseif wd_id_inputs[i] == "BWB"
-                    paleo_wd_dist[i] = Uniform(40,100)
+                    paleo_wd_dist[i] = Uniform(80,200)
+                elseif wd_id_inputs[i] == "Upper Slope"
+                    paleo_wd_dist[i] = Uniform(200,500)
+                elseif wd_id_inputs[i] == "Lower Slope"
+                    paleo_wd_dist[i] = Uniform(500,1000)
+                elseif wd_id_inputs[i] == "Shallow marine"
+                    paleo_wd_dist[i] = Uniform(0,100)
                 end
             end
+            for i = 1:sl_nlayer_input
+                sl_dist[i] = Uniform(sl_min[i], sl_max[i])
+            end
 
-            # Randomly select paleo water depth value (from the distributions) for each input layer
+            # Randomly select paleo water depth and sea level value (from the distributions) for each input layer
             paleo_wd = rand.(paleo_wd_dist)
-            # Allocate paleo_wd matrix for all modeled layers with a resolution = res
-            paleo_wd_highres = Array{Float64,1}(undef, model_nlayer+1)
+            sl_select = rand.(sl_dist)
 
-            # Setup this matrix - paleo water depth for the first (topmost) modeled layer should be the same as the paleo water depth for the first input layer
+            # Allocate paleo_wd and sl matrix for all modeled layers with a resolution = res
+            paleo_wd_highres = Array{Float64,1}(undef, model_nlayer+1)
+            sl_highres = Array{Float64,1}(undef, model_nlayer+1)
+
+            # Setup this matrix - paleo water depth and sea level for the first (topmost) modeled layer should be the same as the paleo water depth for the first input layer
             paleo_wd_highres[1] = paleo_wd[1]
-            # Propagate these selections to every model layers; all model layers from the same input layer get the same paleo water depth
+            sl_highres[1] = sl_select[1]
+
+            # Propagate these selections to every model layers; all model layers from the same input layer get the same paleo water depth / sea level
             for i = 1:wd_nlayer_input
                 for j = 1:model_nlayer+1
                     if subsidence_strat_depths[j]>wd_height_inputs[i]
                         paleo_wd_highres[j]=paleo_wd[i]
+                    end
+                end
+            end
+            for i = 1:sl_nlayer_input
+                for j = 1:model_nlayer+1
+                    if subsidence_strat_depths[j]>sl_height_input[i]
+                        sl_highres[j]=sl_select[i]
                     end
                 end
             end
@@ -329,7 +361,7 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, nsims, res; isosta
                     # maximum([:,i]) = total depth of column at time step i
                     ρ_bulk_column[i] = sum(view(m_bulk,:,i))/maximum(view(Y,:,i))
                     # Tectonic subsidence for all timesteps; record results from all simulations
-                    Sₜ[i,sim] = Y[model_nlayer+2-i,i]*((ρm-ρ_bulk_column[i])/(ρm-ρw)).+paleo_wd_highres[i]
+                    Sₜ[i,sim] = Y[model_nlayer+2-i,i]*((ρm-ρ_bulk_column[i])/(ρm-ρw)).-(sl_highres[i]*ρw_i).+(paleo_wd_highres[i]-sl_highres[i])
                 else
                     Sₜ[i,sim] = Y[model_nlayer+2-i,i]
                 end

@@ -17,14 +17,24 @@
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
-    # # # # # # # # OPTIONAL - Enter paleo water depth information here! # # # # # # # #
-    # Import the data file (.csv)
+    # # # # # # # # OPTIONAL - Enter paleo water depth and sea level information here! # # # # # # # #
+    # Import the paleo water depth data file (.csv)
     wd_csv = importdataset("examples/Svalbard_SequenceStrat.csv", ',', importas=:tuple)
     # Obtain paleo water depth info from the data file
     wd_nLayers = length(wd_csv.Thickness)
     wd = WaterDepth(wd_nLayers)
     wd.DepthID    = wd_csv.Type
     wd.Thickness .= wd_csv.Thickness
+    
+    # Import the eustatic sea level data file (.csv)
+    sl_csv = importdataset("examples/Svalbard_SeaLevel.csv", ',', importas=:tuple)
+    # Obtain paleo water depth info from the data file
+    # For old sedimentary successions: little information on eustatic sea level change, therefore randomly drawing from a uniform distribution of -60 to 60 m
+    sl_nLayers = length(sl_csv.Thickness)
+    sl = SeaLevel(sl_nLayers)
+    sl.Thickness .= sl_csv.Thickness
+    sl.Minimum .= sl_csv.Minimum
+    sl.Maximum .= sl_csv.Maximum
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
@@ -37,7 +47,7 @@
 
     # Run the decompaction and backstripping MC model
     # (wd input is optional)
-    @time (Sₜ, Sμ, Sσ, subsidence_strat_depths) = DecompactBackstrip(strat, wd, nsims, res)
+    @time (Sₜ, Sμ, Sσ, subsidence_strat_depths) = DecompactBackstrip(strat, wd, sl, nsims, res)
 
     #= Code for storing and reading decompaction + backstripping results - will be useful when testing the age-depth modeling part of the model
     # Store results

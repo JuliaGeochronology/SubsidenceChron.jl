@@ -23,6 +23,19 @@
         )
     end
 
+    struct SeaLevel
+        Thickness::Array{Float64,1}
+        Minimum::Array{Float64,1}
+        Maximum::Array{Float64,1}
+    end
+    function SeaLevel(sl_nLayers)
+        SeaLevel(
+            fill(NaN, sl_nLayers),
+            fill(NaN, sl_nLayers),
+            fill(NaN, sl_nLayers),
+        )
+    end
+
     # A type of object to hold data about the thermal subsidence parameters
     mutable struct ThermalSubsidenceParameters
         Param::Array{Float64,1}
@@ -86,5 +99,6 @@
 # For backwards compatibility
 const NewStratData = StratData
 const NewWaterDepth = WaterDepth
+const NewSeaLevel = SeaLevel
 const NewThermalSubsidenceParameters = ThermalSubsidenceParameters
-export NewStratData, NewWaterDepth, NewThermalSubsidenceParameters
+export NewStratData, NewWaterDepth, NewSeaLevel, NewThermalSubsidenceParameters
