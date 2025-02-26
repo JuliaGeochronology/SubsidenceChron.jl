@@ -265,6 +265,10 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             for i in eachindex(subs_parametersₚ, ideal_subs_parameters_sigma)
                 subs_parametersₚ[i] += randn() * ideal_subs_parameters_sigma[i]
             end
+            # Prevent beta from going below 1
+            while subs_parametersₚ[1] < 1
+                subs_parametersₚ[1] = subs_parameters[1] + randn() * ideal_subs_parameters_sigma[1]
+            end
             zₚ = z .+ randn() * std(lithosphere)
 
             if rand() < 0.1
@@ -357,6 +361,10 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             # Propose adjustment to subsidence_parametersₚ
             for i in eachindex(subs_parametersₚ, ideal_subs_parameters_sigma)
                 subs_parametersₚ[i] += randn() * ideal_subs_parameters_sigma[i]
+            end
+            # Prevent beta from going below 1
+            while subs_parametersₚ[1] < 1
+                subs_parametersₚ[1] = subs_parameters[1] + randn() * ideal_subs_parameters_sigma[1]
             end
             zₚ = z .+ randn() * std(lithosphere)
 
@@ -462,7 +470,7 @@ function SubsidenceStratMetropolis(smpl::ChronAgeData, config::StratAgeModelConf
             nanpctile(zdist,2.5,dim=1), # 2.5th percentile
             nanpctile(zdist,97.5,dim=1), # 97.5th percentile
         )
-    return subsmdl, agedist, lldist, beta_t0dist, lldist_burnin
+    return subsmdl, agedist, lldist, beta_t0dist, lldist_burnin, zdist
 end
 
 # Part 2a - Method 2: Strat position for rift-drift transition is unknown
@@ -655,8 +663,9 @@ function SubsidenceStratMetropolis_Height(smpl::ChronAgeData, config::StratAgeMo
             for i in eachindex(subs_parametersₚ, ideal_subs_parameters_sigma)
                 subs_parametersₚ[i] += randn() * ideal_subs_parameters_sigma[i]
             end
-            if subs_parametersₚ[1] < 1
-                subs_parametersₚ[1] = 2 - subs_parametersₚ[1] #1+(1-x)
+            # Prevent beta from going below 1
+            while subs_parametersₚ[1] < 1
+                subs_parametersₚ[1] = subs_parameters[1] + randn() * ideal_subs_parameters_sigma[1]
             end
             zₚ = z .+ randn() * std(lithosphere)
 
@@ -770,8 +779,9 @@ function SubsidenceStratMetropolis_Height(smpl::ChronAgeData, config::StratAgeMo
             for i in eachindex(subs_parametersₚ, ideal_subs_parameters_sigma)
                 subs_parametersₚ[i] += randn() * ideal_subs_parameters_sigma[i]
             end
-            if subs_parametersₚ[1] < 1
-                subs_parametersₚ[1] = 2 - subs_parametersₚ[1] #1+(1-x)
+            # Prevent beta from going below 1
+            while subs_parametersₚ[1] < 1
+                subs_parametersₚ[1] = subs_parameters[1] + randn() * ideal_subs_parameters_sigma[1]
             end
             zₚ = z .+ randn() * std(lithosphere)
 
