@@ -163,10 +163,11 @@ end
 
 """
 ```julia
-DecompactBackstrip(strat::StratData, [wd::WaterDepth], nsims, res; isostasy=true)
+DecompactBackstrip(strat::StratData, [wd::WaterDepth], [sl::SeaLevel], nsims, res; isostasy=true, smoothing=true)
 ```
 Decompact and backstrip a stratigraphic section `strat` at resolution `res`, 
-optionally including water depth information specified by `wd`.
+optionally including water depth information specified by `wd`, and eustatic 
+sea level information specified by `sl`.
 
 Uncertainties in density, surface porosity, and porosity-depth coefficient for
 each lithology are propagated by repeating this decompaction and backstripping 
@@ -179,6 +180,10 @@ deviation) represent what is commonly called "tectonic subsidence", that is
 decompacted sediment thickness (plus water depth, if specified) minus the 
 thickness accounted for by isostatic subsidence.
 
+By default, simple moving average calculations (spanning 10 bins) are performed  
+on the resampled sea level-related information (paleo water depth and eustatic 
+sea level change) to prevent sudden jumps in the (corrected) decompacted depths. 
+
 For the purposes of isostatic calculations, the mantle is assumed to have a
 density of 3330 kg/m3 and water a density of 1000 kg/m3; input distributions
 for the density, surface porosity, and porosity-depth coefficient of each
@@ -190,7 +195,7 @@ lithology are specified by the `subsidenceparams` function.
 ```
 """
 # Decompaction and backstripping (Method 1: with water depth and eustatic sea level inputs)
-function DecompactBackstrip(strat::StratData, wd::WaterDepth, sl::SeaLevel, nsims, res; isostasy=true)
+function DecompactBackstrip(strat::StratData, wd::WaterDepth, sl::SeaLevel, nsims, res; isostasy=true, smoothing=true)
 
     # Import data from csv and assign parameters for each lithology
         lithology_inputs = strat.Lithology
@@ -336,6 +341,12 @@ function DecompactBackstrip(strat::StratData, wd::WaterDepth, sl::SeaLevel, nsim
                         sl_highres[j]=sl_select[i]
                     end
                 end
+            end
+
+            # Optional: perform moving average calculations on the MC-sampled, high resolution paleo water depths and eustatic sea levels
+            if smoothing
+                paleo_wd_highres = movmean(paleo_wd_highres, 10)
+                sl_highres = movmean(sl_highres, 10)
             end
 
             # Remove the effect of sediment load - same indexing logic as the decompaction loop
