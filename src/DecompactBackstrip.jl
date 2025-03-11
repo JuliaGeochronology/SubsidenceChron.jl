@@ -163,7 +163,10 @@ end
 
 """
 ```julia
-DecompactBackstrip(strat::StratData, [wd::WaterDepth], [sl::SeaLevel], nsims, res; isostasy=true, smoothing=true)
+DecompactBackstrip(strat::StratData, [wd::WaterDepth], [sl::SeaLevel], nsims, res; 
+    isostasy=true, 
+    smoothing=true,
+)
 ```
 Decompact and backstrip a stratigraphic section `strat` at resolution `res`, 
 optionally including water depth information specified by `wd`, and eustatic 
@@ -195,7 +198,10 @@ lithology are specified by the `subsidenceparams` function.
 ```
 """
 # Decompaction and backstripping (Method 1: with water depth and eustatic sea level inputs)
-function DecompactBackstrip(strat::StratData, wd::WaterDepth, sl::SeaLevel, nsims, res; isostasy=true, smoothing=true)
+function DecompactBackstrip(strat::StratData, wd::WaterDepth, sl::SeaLevel, nsims, res; 
+    isostasy=true, 
+    smoothing=false,
+)
 
     # Import data from csv and assign parameters for each lithology
         lithology_inputs = strat.Lithology
