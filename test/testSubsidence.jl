@@ -114,7 +114,7 @@ expected_mean_ages = [398.51, 397.72, 396.96, 396.19, 395.43, 394.67, 393.92, 39
 @test isapprox(only(subsmdl_test.Beta_025CI), 1.256171601851893, atol=0.1)
 @test isapprox(only(subsmdl_test.Beta_975CI), 1.5277726246698682, atol=0.1)
 @test isapprox(only(subsmdl_test.T0), 402.94742883910374, atol=5)
-@test isapprox(only(subsmdl_test.T0_025CI), 391.5831873363192, atol=10)
+@test isapprox(only(subsmdl_test.T0_025CI), 390.44768044716994, atol=10)
 @test isapprox(only(subsmdl_test.T0_975CI), 414.28186494452217, atol=10)
 
 ## Specify subsidence bottom and top
@@ -142,9 +142,9 @@ expected_mean_ages = [398.5, 397.72, 396.95, 396.2, 395.46, 394.71, 393.95, 393.
 @test isapprox(only(subsmdl_test.Beta), 1.1247054117222945, atol=0.1)
 @test isapprox(only(subsmdl_test.Beta_025CI), 1.0148599420923872, atol=0.1)
 @test isapprox(only(subsmdl_test.Beta_975CI), 1.4426669092339366, atol=0.1)
-@test isapprox(only(subsmdl_test.T0), 387.9969548307741, atol=5)
-@test isapprox(only(subsmdl_test.T0_025CI), 338.7980819566939, atol=10)
-@test isapprox(only(subsmdl_test.T0_975CI), 499.6217634635351, atol=10)
+@test isapprox(only(subsmdl_test.T0), 384.9922091880086, atol=5)
+@test isapprox(only(subsmdl_test.T0_025CI), 337.6653192413728, atol=10)
+@test isapprox(only(subsmdl_test.T0_975CI), 488.08880450361073, atol=10)
 
 ## --- As above, but specify heights as positive numbers above bottom of section
 
@@ -184,6 +184,6 @@ expected_mean_ages = [398.61, 397.78, 396.99, 396.26, 395.55, 394.87, 394.18, 39
 @test isapprox(only(subsmdl_test.Beta), 1.1247054117222945, atol=0.1)
 @test isapprox(only(subsmdl_test.Beta_025CI), 1.0148599420923872, atol=0.15)
 @test isapprox(only(subsmdl_test.Beta_975CI), 1.3509359022349554, atol=0.15)
-@test isapprox(only(subsmdl_test.T0), 388.6046712104339, atol=5)
-@test isapprox(only(subsmdl_test.T0_025CI), 338.7980819566939, atol=10)
-@test isapprox(only(subsmdl_test.T0_975CI), 499.6217634635351, atol=10)
+@test isapprox(only(subsmdl_test.T0), 384.7424612127314, atol=5)
+@test isapprox(only(subsmdl_test.T0_025CI), 337.7980819566939, atol=10)
+@test isapprox(only(subsmdl_test.T0_975CI), 489.37262155648244, atol=10)
